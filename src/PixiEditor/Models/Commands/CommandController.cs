@@ -222,7 +222,7 @@ internal class CommandController
 
             LocalizedString displayName = new("SELECT_TOOL", toolInstance.DisplayName);
 
-            var command = new Command.ToolCommand(toolsHandler, false)
+            var command = new Command.ToolCommand(toolsHandler, false, this)
             {
                 InternalName = internalName,
                 DisplayName = displayName,
@@ -234,7 +234,7 @@ internal class CommandController
                 ToolType = type,
             };
 
-            var transientCommand = new Command.ToolCommand(toolsHandler, true)
+            var transientCommand = new Command.ToolCommand(toolsHandler, true, this)
             {
                 InternalName = $"{internalName}.Transient",
                 DisplayName = displayName.Value + " " + new LocalizedString("QUICK_USE"),
@@ -274,7 +274,7 @@ internal class CommandController
 
         LocalizedString displayName = new("SELECT_TOOL", brushTool.DisplayName);
         string internalName = $"PixiEditor.Tools.Select.{brushTool.ToolName.Replace(" ", string.Empty)}";
-        var command = new Models.Commands.Commands.Command.ToolCommand(toolsHandler, false)
+        var command = new Models.Commands.Commands.Command.ToolCommand(toolsHandler, false, this)
         {
             DefaultShortcut = brushTool.DefaultShortcut ?? KeyCombination.None,
             Shortcut =
@@ -288,7 +288,7 @@ internal class CommandController
             Handler = brushTool
         };
 
-        var transientCommand = new Models.Commands.Commands.Command.ToolCommand(toolsHandler, true)
+        var transientCommand = new Models.Commands.Commands.Command.ToolCommand(toolsHandler, true, this)
         {
             DefaultShortcut = KeyCombination.None,
             Shortcut = GetShortcut($"{internalName}.Transient", KeyCombination.None, template),

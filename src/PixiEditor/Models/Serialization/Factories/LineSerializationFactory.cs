@@ -13,6 +13,11 @@ internal class LineSerializationFactory : VectorShapeSerializationFactory<LineVe
     {
         builder.AddVecD(original.Start);
         builder.AddVecD(original.End);
+
+        // Appended after the original two points so files written before curves existed still
+        // deserialize: they just run out of bytes before this.
+        builder.AddVecDList(original.ControlPoints);
+        builder.AddDouble(original.Smoothness);
     }
 
     protected override bool DeserializeVectorData(ByteExtractor extractor, Matrix3X3 matrix, Paintable strokePaintable,
@@ -23,12 +28,23 @@ internal class LineSerializationFactory : VectorShapeSerializationFactory<LineVe
         VecD start = extractor.GetVecD();
         VecD end = extractor.GetVecD();
 
+        List<VecD> controlPoints = new();
+        double smoothness = 1.0;
+
+        if (extractor.HasMoreData)
+        {
+            controlPoints = extractor.GetVecDList();
+            smoothness = extractor.GetDouble();
+        }
+
         original = new LineVectorData(start, end)
         {
             Stroke = strokePaintable,
             FillPaintable = fillPaintable,
             StrokeWidth = strokeWidth,
-            TransformationMatrix = matrix
+            TransformationMatrix = matrix,
+            ControlPoints = controlPoints,
+            Smoothness = smoothness
         };
 
         return true;

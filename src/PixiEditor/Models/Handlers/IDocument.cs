@@ -70,6 +70,7 @@ internal interface IDocument : IHandler, Extensions.CommonApi.Documents.IDocumen
     public HashSet<Guid> ExtractSelectedLayers(bool includeFoldersWithMask = false);
     public List<Guid> GetSelectedMembersInOrder(bool includeNested = false);
     public void UpdateSavedState();
+    public void OnUndoBoundaryPassed();
 
     internal void InternalRaiseLayersChanged(LayersChangedEventArgs e);
     internal void InternalMarkSaveState(DocumentMarkType type);

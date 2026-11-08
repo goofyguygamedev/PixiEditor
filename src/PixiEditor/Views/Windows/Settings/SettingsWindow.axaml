@@ -221,6 +221,73 @@
                                         VerticalAlignment="Center" />
                             </StackPanel>
 
+                            <TextBlock ui:Translator.Key="TIMELAPSE_SETTINGS_HEADER" Classes="h5" />
+
+                            <CheckBox Classes="leftOffset" ui:Translator.Key="TIMELAPSE_ENABLED"
+                                      IsChecked="{Binding SettingsSubViewModel.Timelapse.RecordingEnabled, Mode=TwoWay}" />
+
+                            <StackPanel Classes="leftOffset" Orientation="Horizontal">
+                                <Label Target="timelapseTriggerComboBox" ui:Translator.Key="TIMELAPSE_TRIGGER"
+                                       VerticalAlignment="Center" />
+                                <ComboBox Name="timelapseTriggerComboBox" Width="210" VerticalAlignment="Center"
+                                          ItemsSource="{markupExtensions:Enum preferences:TimelapseCaptureTrigger}"
+                                          SelectedItem="{Binding SettingsSubViewModel.Timelapse.CaptureTrigger, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock
+                                                ui:Translator.Key="{Binding Converter={converters:EnumToLocalizedStringConverter}}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Classes="leftOffset" Orientation="Horizontal"
+                                        IsVisible="{Binding SettingsSubViewModel.Timelapse.IsDrawingIntervalRelevant}">
+                                <Label ui:Translator.Key="TIMELAPSE_DRAWING_INTERVAL" />
+                                <controls:NumberInput Min="0.05" FontSize="12" HorizontalAlignment="Left"
+                                                      Value="{Binding SettingsSubViewModel.Timelapse.DrawingIntervalSeconds, Mode=TwoWay}"
+                                                      Width="55" />
+                                <Label ui:Translator.Key="SECOND_UNIVERSAL" />
+                            </StackPanel>
+
+                            <StackPanel Classes="leftOffset" Orientation="Horizontal">
+                                <Label Target="timelapseSourceComboBox" ui:Translator.Key="TIMELAPSE_SOURCE"
+                                       VerticalAlignment="Center" />
+                                <ComboBox Name="timelapseSourceComboBox" Width="210" VerticalAlignment="Center"
+                                          ItemsSource="{markupExtensions:Enum preferences:TimelapseCaptureSource}"
+                                          SelectedItem="{Binding SettingsSubViewModel.Timelapse.CaptureSource, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock
+                                                ui:Translator.Key="{Binding Converter={converters:EnumToLocalizedStringConverter}}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Classes="leftOffset" Orientation="Horizontal">
+                                <Label Target="timelapseBackgroundComboBox" ui:Translator.Key="TIMELAPSE_BACKGROUND"
+                                       VerticalAlignment="Center" />
+                                <ComboBox Name="timelapseBackgroundComboBox" Width="210" VerticalAlignment="Center"
+                                          ItemsSource="{markupExtensions:Enum preferences:TimelapseBackground}"
+                                          SelectedItem="{Binding SettingsSubViewModel.Timelapse.Background, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock
+                                                ui:Translator.Key="{Binding Converter={converters:EnumToLocalizedStringConverter}}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Classes="leftOffset" Orientation="Horizontal">
+                                <Label ui:Translator.Key="TIMELAPSE_TARGET_DURATION" />
+                                <controls:NumberInput Min="1" FontSize="12" HorizontalAlignment="Left"
+                                                      Value="{Binding SettingsSubViewModel.Timelapse.TargetDurationSeconds, Mode=TwoWay}"
+                                                      Width="55" />
+                                <Label ui:Translator.Key="SECOND_UNIVERSAL" />
+                            </StackPanel>
+
                             <TextBlock ui:Translator.Key="DEBUG" Classes="h5" />
                             <CheckBox Classes="leftOffset"
                                       IsChecked="{Binding SettingsSubViewModel.General.IsDebugModeEnabled}"

@@ -24,11 +24,19 @@ internal class MagicWandToolViewModel : ToolViewModel, IMagicWandToolHandler
     [Settings.Enum("SCOPE_LABEL")]
     public DocumentScope DocumentScope => GetValue<DocumentScope>();
 
-    [Settings.Percent("TOLERANCE_LABEL", ExposedByDefault = false)]
+    [Settings.Percent("TOLERANCE_LABEL", ExposedByDefault = true)]
     public float Tolerance => GetValue<float>();
 
     [Settings.Bool("CONTIGUOUS_LABEL", true, ExposedByDefault = true)]
     public bool Contiguous => GetValue<bool>();
+
+    private bool altOverridesContiguous;
+
+    /// <summary>Alt forces a non-contiguous select, i.e. all of that colour in the layer.</summary>
+    public bool ResultingContiguous => !altOverridesContiguous && Contiguous;
+
+    // Keep Alt instead of letting it transiently switch to the color picker.
+    public override bool HandlesAltModifier => true;
 
     public override string DefaultIcon => PixiPerfectIcons.MagicWand;
 
@@ -47,6 +55,21 @@ internal class MagicWandToolViewModel : ToolViewModel, IMagicWandToolHandler
 
     public override void KeyChanged(bool ctrlIsDown, bool shiftIsDown, bool altIsDown, Key argsKey)
     {
+        // Alt is independent of the add/subtract modifiers, so it is tracked separately rather
+        // than as another branch of the chain below.
+        altOverridesContiguous = altIsDown;
+
+        if (altIsDown)
+        {
+            ActionDisplay = new LocalizedString("MAGIC_WAND_ACTION_DISPLAY_ALT");
+            KeyModifierSelectionMode = shiftIsDown
+                ? SelectionMode.Add
+                : ctrlIsDown
+                    ? SelectionMode.Subtract
+                    : SelectionMode.New;
+            return;
+        }
+
         if (shiftIsDown)
         {
             ActionDisplay = new LocalizedString("MAGIC_WAND_ACTION_DISPLAY_SHIFT");

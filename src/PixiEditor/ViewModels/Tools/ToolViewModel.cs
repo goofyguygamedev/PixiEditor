@@ -64,6 +64,9 @@ internal abstract class ToolViewModel : ObservableObject, IToolHandler
     /// </summary>
     public virtual bool UsesColor => false;
 
+    /// <inheritdoc cref="IToolHandler.HandlesAltModifier" />
+    public virtual bool HandlesAltModifier => false;
+
     /// <summary>
     /// Determines if PixiEditor should switch to the Eraser when right click mode is set to erase
     /// </summary>

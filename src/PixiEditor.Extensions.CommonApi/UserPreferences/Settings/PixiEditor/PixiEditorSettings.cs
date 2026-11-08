@@ -146,4 +146,33 @@ public static class PixiEditorSettings
         public static LocalSetting<double> LastFetchedExchangeRate { get; } =
             LocalSetting.NonOwned<double>(PixiEditor, 0);
     }
+
+    public static class Timelapse
+    {
+        public static SyncedSetting<bool> Enabled { get; } = SyncedSetting.NonOwned(PixiEditor, true);
+
+        public static SyncedSetting<TimelapseCaptureTrigger> CaptureTrigger { get; } =
+            SyncedSetting.NonOwned(PixiEditor, TimelapseCaptureTrigger.OnActionComplete);
+
+        public static SyncedSetting<TimelapseCaptureSource> CaptureSource { get; } =
+            SyncedSetting.NonOwned(PixiEditor, TimelapseCaptureSource.ArtworkOnly);
+
+        public static SyncedSetting<TimelapseBackground> Background { get; } =
+            SyncedSetting.NonOwned(PixiEditor, TimelapseBackground.White);
+
+        /// <summary>Gap between frames while a stroke is in progress, in seconds.</summary>
+        public static SyncedSetting<double> DrawingIntervalSeconds { get; } =
+            SyncedSetting.NonOwned(PixiEditor, 0.25);
+
+        /// <summary>
+        /// How often the recorder checks for a change it could not capture the moment an action
+        /// finished. A safety net, not the capture rate.
+        /// </summary>
+        public static SyncedSetting<double> SweepIntervalSeconds { get; } =
+            SyncedSetting.NonOwned(PixiEditor, 2d);
+
+        /// <summary>Roughly how long an exported replay should run.</summary>
+        public static SyncedSetting<double> TargetDurationSeconds { get; } =
+            SyncedSetting.NonOwned(PixiEditor, 30d);
+    }
 }

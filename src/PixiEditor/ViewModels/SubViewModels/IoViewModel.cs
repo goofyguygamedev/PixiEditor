@@ -171,6 +171,15 @@ internal class IoViewModel : SubViewModel<ViewModelMain>
             return false;
         }
 
+        // A tool that uses Alt as its own modifier (the magic wand selecting all of a color)
+        // must keep it. Otherwise Alt transiently switches to the color picker and the tool is
+        // swapped out from under the click.
+        if (Owner.ToolsSubViewModel.ActiveTool is { HandlesAltModifier: true } active
+            && tool.Shortcut.Key is Key.LeftAlt or Key.RightAlt
+            && active.GetType() != tool.ToolType)
+        {
+            return false;
+        }
         Owner.ToolsSubViewModel.SetActiveTool(tool.ToolType, true);
 
         return true;
@@ -193,6 +202,15 @@ internal class IoViewModel : SubViewModel<ViewModelMain>
             return false;
         }
 
+        // A tool that uses Alt as its own modifier (the magic wand selecting all of a color)
+        // must keep it. Otherwise Alt transiently switches to the color picker and the tool is
+        // swapped out from under the click.
+        if (Owner.ToolsSubViewModel.ActiveTool is { HandlesAltModifier: true } active
+            && tool.Shortcut.Key is Key.LeftAlt or Key.RightAlt
+            && active.GetType() != tool.ToolType)
+        {
+            return false;
+        }
         Owner.ToolsSubViewModel.SetActiveTool(tool.ToolType, true);
 
         return true;

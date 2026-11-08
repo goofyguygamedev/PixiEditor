@@ -72,6 +72,7 @@ internal static class ServiceCollectionHelpers
             .AddSingleton<AnimationsViewModel>()
             .AddSingleton<NodeGraphManagerViewModel>()
             .AddSingleton<AutosaveViewModel>()
+            .AddSingleton<TimelapseViewModel>()
             .AddSingleton<UserViewModel>()
             .AddSingleton<BrushesViewModel>()
             .AddSingleton<AdvicesViewModel>()
@@ -225,7 +226,8 @@ internal static class ServiceCollectionHelpers
             .AddSingleton<MenuItemBuilder, OpenDockablesMenuBuilder>()
             .AddSingleton<MenuItemBuilder, ToggleGridLinesMenuBuilder>()
             .AddSingleton<MenuItemBuilder, ToggleSnappingMenuBuilder>()
-            .AddSingleton<MenuItemBuilder, ToggleHighResPreviewMenuBuilder>();
+            .AddSingleton<MenuItemBuilder, ToggleHighResPreviewMenuBuilder>()
+            .AddSingleton<MenuItemBuilder, ToggleTimelapseRecordingMenuBuilder>();
     }
 
     public static IServiceCollection AddExtensionServices(this IServiceCollection collection, ExtensionLoader loader) =>

@@ -22,6 +22,8 @@ internal class SettingsViewModel : SubViewModel<SettingsWindowViewModel>
     public AccessibilitySettings Accessibility { get; set; } = new();
     public AppearanceSettings Appearance { get; } = new();
 
+    public TimelapseSettings Timelapse { get; } = new();
+
     public SettingsViewModel(SettingsWindowViewModel owner)
         : base(owner)
     {

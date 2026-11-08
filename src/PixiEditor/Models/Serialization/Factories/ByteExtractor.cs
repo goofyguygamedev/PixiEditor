@@ -8,7 +8,14 @@ namespace PixiEditor.Models.Serialization.Factories;
 public class ByteExtractor
 {
     public int Position { get; private set; }
-    
+
+    /// <summary>
+    /// True while unread bytes remain. Each shape is serialized into its own buffer, so this is a
+    /// safe way to read fields appended by a newer build without a file version check: older files
+    /// simply have nothing left to read.
+    /// </summary>
+    public bool HasMoreData => Position < _data.Length;
+
     private byte[] _data;
     
     public ByteExtractor(byte[] data)

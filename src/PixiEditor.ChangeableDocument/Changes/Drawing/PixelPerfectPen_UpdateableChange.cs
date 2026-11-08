@@ -15,6 +15,19 @@ internal class PixelPerfectPen_UpdateableChange : UpdateableChange
     private HashSet<VecI> pixelsToConfirm = new();
     private HashSet<VecI> pixelsToConfirm2 = new();
     private List<VecI>? incomingPoints = new();
+
+    /// <summary>
+    /// Where the stroke ended, remembered because <see cref="incomingPoints"/> is released once
+    /// the change has been applied for the first time.
+    /// </summary>
+    /// <remarks>
+    /// Apply used to read the end position straight out of <see cref="incomingPoints"/> every time
+    /// it ran, including on a redo - by which point the list had been set to null by the first
+    /// apply and never restored by Revert. Redoing a pixel-perfect pen stroke therefore threw a
+    /// NullReferenceException out of the change pipeline, which is not caught anywhere, and took
+    /// the editor down with the document unsaved.
+    /// </remarks>
+    private VecD lastUseEndPosition;
     private CommittedChunkStorage? chunkStorage;
     private int frame;
     private VecD? previousLastBrushToolUsePosition;
@@ -109,7 +122,11 @@ internal class PixelPerfectPen_UpdateableChange : UpdateableChange
             throw new InvalidOperationException("Trying to save chunks while a saved one already exist");
 
         ignoreInUndo = false;
-        target.LastBrushToolUseEndPosition = incomingPoints[^1] + new VecD(0.5);
+
+        if (incomingPoints is { Count: > 0 })
+            lastUseEndPosition = incomingPoints[^1] + new VecD(0.5);
+
+        target.LastBrushToolUseEndPosition = lastUseEndPosition;
         var image = DrawingChangeHelper.GetTargetImageOrThrow(target, memberGuid, drawOnMask, frame);
         if (firstApply)
         {

@@ -328,7 +328,33 @@ internal class ViewportOverlays
             Mode = BindingMode.OneWay
         };
 
+        // Two-way: dragging a curve handle in the overlay has to land back on the view model, since
+        // that is what tells the executor to rebuild the geometry.
+        Binding controlPointsBinding = new()
+        {
+            Source = Viewport,
+            Path = "Document.LineToolOverlayViewModel.ControlPoints",
+            Mode = BindingMode.TwoWay
+        };
+
+        Binding smoothnessBinding = new()
+        {
+            Source = Viewport,
+            Path = "Document.LineToolOverlayViewModel.Smoothness",
+            Mode = BindingMode.OneWay
+        };
+
+        Binding isometricLockBinding = new()
+        {
+            Source = Viewport,
+            Path = "Document.LineToolOverlayViewModel.IsometricLock",
+            Mode = BindingMode.OneWay
+        };
+
         lineToolOverlay.Bind(Visual.IsVisibleProperty, isVisibleBinding);
+        lineToolOverlay.Bind(LineToolOverlay.ControlPointsProperty, controlPointsBinding);
+        lineToolOverlay.Bind(LineToolOverlay.SmoothnessProperty, smoothnessBinding);
+        lineToolOverlay.Bind(LineToolOverlay.IsometricLockProperty, isometricLockBinding);
         lineToolOverlay.Bind(LineToolOverlay.SnappingControllerProperty, snappingBinding);
         lineToolOverlay.Bind(LineToolOverlay.ActionCompletedProperty, actionCompletedBinding);
         lineToolOverlay.Bind(LineToolOverlay.LineStartProperty, lineStartBinding);

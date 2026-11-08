@@ -27,6 +27,30 @@ internal class VectorLineToolViewModel : ShapeTool, IVectorLineToolHandler
 
     [Settings.Inherited] public double ToolSize => GetValue<double>();
 
+    /// <summary>
+    /// Number of draggable points between the ends. 0 keeps the plain two-point line.
+    /// </summary>
+    /// <remarks>
+    /// Defaults to 2 to match Paint.NET's line tool, whose four points (two ends plus two middle
+    /// handles) are what makes a line bendable without having to go and turn anything on first.
+    /// They are seeded on the line itself, so a line drawn and left alone is still straight.
+    /// </remarks>
+    [Settings.Size("LINE_CURVE_POINTS", 2, Min = 0)]
+    public double CurvePoints => GetValue<double>();
+
+    /// <summary>0 is a smooth curve through the points, 1 makes every point a sharp corner.</summary>
+    [Settings.Percent("LINE_CURVE_SHARPNESS", 0f)]
+    public float CurveSharpness => GetValue<float>();
+
+    /// <summary>Constrains the line to pixel-art isometric angles at whole-step lengths.</summary>
+    [Settings.Bool("LINE_ISOMETRIC_LOCK", false, ExposedByDefault = true)]
+    public bool IsometricLock => GetValue<bool>();
+
+    public int CurvePointCount =>
+        (int)Math.Clamp(Math.Round(CurvePoints), 0, LineToolbarHelper.MaxCurvePoints);
+
+    public double CurveSmoothness => 1d - Math.Clamp(CurveSharpness, 0f, 1f);
+
     public bool Snap { get; private set; }
 
     public override Type LayerTypeToCreateOnEmptyUse { get; } = typeof(VectorLayerNode);
@@ -40,6 +64,8 @@ internal class VectorLineToolViewModel : ShapeTool, IVectorLineToolHandler
         {
             strokeSetting.Value = 1d;
         }
+
+        LineToolbarHelper.ConfigureCurveSettings(Toolbar);
     }
 
     public override void KeyChanged(bool ctrlIsDown, bool shiftIsDown, bool altIsDown, Key argsKey)

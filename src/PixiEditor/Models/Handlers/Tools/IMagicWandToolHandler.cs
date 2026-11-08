@@ -9,4 +9,10 @@ internal interface IMagicWandToolHandler : IToolHandler
     public DocumentScope DocumentScope { get; }
     public float Tolerance { get; }
     bool Contiguous { get; }
+
+    /// <summary>
+    /// <see cref="Contiguous"/> after modifier keys are applied; holding Alt selects every
+    /// matching pixel in the layer rather than only the touching region.
+    /// </summary>
+    bool ResultingContiguous { get; }
 }

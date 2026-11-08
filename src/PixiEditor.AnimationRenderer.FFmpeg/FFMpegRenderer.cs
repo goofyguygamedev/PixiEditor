@@ -277,6 +277,16 @@ public class FFMpegRenderer : IAnimationRenderer
                     .WithCustomArgument($"-qscale:v {qscale}")
                     .WithVideoCodec("mpeg4")
                     .ForcePixelFormat("yuv420p");
+
+                // The mp4 path ignored Size entirely, unlike the gif path, so anything relying on
+                // the renderer to scale came out at the raw frame resolution. Callers that resize
+                // their own frames pass the size those frames already are, making this a no-op for
+                // them. flags=neighbor so upscaled pixel art stays crisp rather than being smeared
+                // by the default scaler.
+                if (Size.X > 0 && Size.Y > 0)
+                {
+                    options.WithCustomArgument($"-vf \"scale={Size.X}:{Size.Y}:flags=neighbor\"");
+                }
             });
     }
 

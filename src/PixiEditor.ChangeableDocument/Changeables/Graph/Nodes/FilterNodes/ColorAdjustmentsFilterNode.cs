@@ -25,6 +25,9 @@ public class ColorAdjustmentsFilterNode : FilterNode
     public InputProperty<bool> AdjustHue { get; }
     public InputProperty<double> HueValue { get; }
 
+    public InputProperty<bool> AdjustExposure { get; }
+    public InputProperty<double> ExposureValue { get; }
+
     private List<ColorFilter> filters = new List<ColorFilter>();
     private List<ColorFilter> toDispose = new List<ColorFilter>();
     private ColorFilter lastCombinedFilter;
@@ -54,6 +57,11 @@ public class ColorAdjustmentsFilterNode : FilterNode
         AdjustHue = CreateInput("AdjustHue", "ADJUST_HUE", false);
         HueValue = CreateInput("HueValue", "HUE_VALUE", 0.0)
             .WithRules(rules => rules.Min(-180d).Max(180d));
+
+        // Measured in stops, like a camera: each +1 doubles the light.
+        AdjustExposure = CreateInput("AdjustExposure", "ADJUST_EXPOSURE", false);
+        ExposureValue = CreateInput("ExposureValue", "EXPOSURE_VALUE", 0.0)
+            .WithRules(rules => rules.Min(-5d).Max(5d));
     }
 
     protected override ColorFilter? GetColorFilter(RenderContext context)
@@ -67,6 +75,7 @@ public class ColorAdjustmentsFilterNode : FilterNode
         CreateTintFilter();
         CreateSaturationFilter();
         CreateHueFilter();
+        CreateExposureFilter();
 
         lastCombinedFilter?.Dispose();
         lastCombinedFilter = CombineFilters();
@@ -174,6 +183,23 @@ public class ColorAdjustmentsFilterNode : FilterNode
             ]);
 
             filters.Add(hueFilter);
+        }
+    }
+
+    private void CreateExposureFilter()
+    {
+        if (AdjustExposure.Value)
+        {
+            // Exposure is logarithmic: gain doubles per stop, so 0 stops leaves the image alone.
+            float gain = (float)Math.Pow(2, ExposureValue.Value);
+            ColorFilter exposureFilter = ColorFilter.CreateColorMatrix(
+            [
+                gain, 0, 0, 0, 0,
+                0, gain, 0, 0, 0,
+                0, 0, gain, 0, 0,
+                0, 0, 0, 1, 0
+            ]);
+            filters.Add(exposureFilter);
         }
     }
 

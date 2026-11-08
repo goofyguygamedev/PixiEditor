@@ -208,6 +208,21 @@ internal partial class DocumentViewModel : PixiObservableObject, IDocument
     public ObservableCollection<PaletteColor> Swatches { get; set; } = new();
     public Guid Id => Internals.Tracker.Document.DocumentId;
 
+    /// <summary>
+    /// Id of the most recently applied change, or null if nothing has changed yet. It changes on
+    /// every applied change, so it doubles as a cheap dirty-check for features such as timelapse
+    /// capture that need to skip intervals in which nothing happened.
+    /// </summary>
+    public Guid? LastChangeGuid => Internals.Tracker.LastChangeGuid;
+
+    /// <summary>
+    /// Raised on the UI thread each time a discrete, undoable action finishes on this document
+    /// (an undo or a redo counts as one). This is the "one user action" granularity the timelapse
+    /// recorder captures at: it fires once per undo step rather than once per intermediate change,
+    /// so a single brush stroke produces a single notification.
+    /// </summary>
+    public event Action<DocumentViewModel>? UndoBoundaryPassed;
+
     public ObservableRangeCollection<PaletteColor> Palette
     {
         get => palette;
@@ -1416,6 +1431,24 @@ internal partial class DocumentViewModel : PixiObservableObject, IDocument
         OnPropertyChanged(nameof(AllChangesSaved));
         OnPropertyChanged(nameof(HasSavedUndo));
         OnPropertyChanged(nameof(HasSavedRedo));
+    }
+
+    /// <summary>
+    /// Called by <see cref="Models.DocumentModels.DocumentUpdater"/> once an undo boundary has been
+    /// crossed. Don't call this from anywhere else - subscribers treat each invocation as one
+    /// completed user action.
+    /// </summary>
+    public void OnUndoBoundaryPassed()
+    {
+        // A listener must never be able to take the editor down between two strokes.
+        try
+        {
+            UndoBoundaryPassed?.Invoke(this);
+        }
+        catch (Exception e)
+        {
+            CrashHelper.SendExceptionInfo(e);
+        }
     }
 
     private void ExtractSelectedLayers(IFolderHandler folder, HashSet<Guid> list,

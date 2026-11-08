@@ -35,7 +35,7 @@ internal class MagicWandToolExecutor : UpdateableChangeExecutor
 
         var pos = controller!.LastPixelPosition;
         tolerance = (float)magicWand.Tolerance;
-        contiguous = magicWand.Contiguous;
+        contiguous = magicWand.ResultingContiguous;
 
         AddUpdateAction(pos);
 

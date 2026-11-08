@@ -125,27 +125,31 @@ public partial class SizeInput : UserControl
 
     private void Border_MouseWheel(object? sender, PointerWheelEventArgs e)
     {
-        int step = (int)e.Delta.Y / 100;
+        // Avalonia reports the wheel delta in notches (normally +/-1), unlike WPF's 120-unit
+        // increments this control was originally written against. Dividing by 100 truncated every
+        // realistic delta to 0, which left scrolling over the field doing nothing at all.
+        int step = (int)Math.Round(e.Delta.Y);
+        if (step == 0)
+            return;
 
+        double newSize;
         if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
         {
-            Size += step * 2;
+            newSize = Size + step * 2;
         }
         else if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
-            if (step < 0)
-            {
-                Size /= 2;
-            }
-            else
-            {
-                Size *= 2;
-            }
+            newSize = step < 0 ? Size / 2 : Size * 2;
         }
         else
         {
-            Size += step;
+            newSize = Size + step;
         }
+
+        Size = Math.Clamp(newSize, MinSize, MaxSize);
+
+        // Scrolling the value must not also scroll whatever panel the field sits in.
+        e.Handled = true;
 
         OnScrollAction?.Invoke();
     }

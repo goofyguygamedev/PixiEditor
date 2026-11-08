@@ -68,6 +68,7 @@ internal partial class ViewModelMain : ViewModelBase, ICommandsHandler
     public AnimationsViewModel AnimationsSubViewModel { get; set; }
     public NodeGraphManagerViewModel NodeGraphManager { get; set; }
     public AutosaveViewModel AutosaveViewModel { get; set; }
+    public TimelapseViewModel TimelapseSubViewModel { get; set; }
     public UserViewModel UserViewModel { get; set; }
     public BrushesViewModel BrushesSubViewModel { get; set; }
     public AdvicesViewModel AdvicesSubViewModel { get; set; }
@@ -195,6 +196,7 @@ internal partial class ViewModelMain : ViewModelBase, ICommandsHandler
         NodeGraphManager = services.GetService<NodeGraphManagerViewModel>();
 
         AutosaveViewModel = services.GetService<AutosaveViewModel>();
+        TimelapseSubViewModel = services.GetService<TimelapseViewModel>();
 
         ExtensionsSubViewModel.Init();  // Must be last
 

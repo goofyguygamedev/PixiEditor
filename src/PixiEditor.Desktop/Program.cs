@@ -46,6 +46,12 @@ public class Program
         }
         catch (Exception ex)
         {
+            // Don't let a bad/unreadable preference file silently pin us to the Vulkan-first
+            // order: on hybrid-GPU machines that path can deadlock rather than fail, so the
+            // WithDrawie fallback below never fires and the app just hangs.
+            Console.Error.WriteLine(
+                $"Failed to read render API preference from {RenderApiPreferenceManager.ConfigPath}; " +
+                $"falling back to the Vulkan-first rendering order. {ex}");
         }
 
         return AppBuilder.Configure<App>()

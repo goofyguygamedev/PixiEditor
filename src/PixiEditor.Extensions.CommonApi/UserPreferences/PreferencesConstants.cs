@@ -64,6 +64,9 @@ public static class PreferencesConstants
     public const string LastSeenChangelogVersion = "LastSeenChangelogVersion";
     public const string FavouriteFonts = "FavouriteFonts";
 
+    // Timelapse settings live in PixiEditorSettings.Timelapse, with the rest of the typed
+    // settings, rather than as loose keys here.
+
     public static bool UseSystemWindowDecorationsDefault = System.OperatingSystem.IsWindowsVersionAtLeast(10)
                                                            && !System.OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000); // True for Windows 10 and false for others, due to the offset rendering bug
 }

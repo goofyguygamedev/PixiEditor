@@ -15,6 +15,7 @@ using PixiEditor.Models.Commands.CommandContext;
 using PixiEditor.Models.Config;
 using PixiEditor.Models.Controllers;
 using PixiEditor.Models.Events;
+using PixiEditor.Models.DocumentModels.UpdateableChangeExecutors.Features;
 using PixiEditor.Models.Handlers;
 using Drawie.Numerics;
 using PixiEditor.Extensions.CommonApi.Tools;
@@ -332,6 +333,59 @@ internal class ToolsViewModel : SubViewModel<ViewModelMain>, IToolsHandler
         doc.EventInlet.OnApplyTransform();
     }
 
+    /// <summary>
+    /// Escape finishes whatever the user is in the middle of, or clears the selection if they are
+    /// not in the middle of anything.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Escape used to be bound only to clearing the selection, which left the shape and line tools
+    /// with no way out except Enter or a fresh click somewhere else - so drawing a line and then
+    /// wanting to be done with it meant performing another action to dismiss its handles. Paint.NET
+    /// treats Escape as "I am finished with this", and that is what this does.
+    /// </para>
+    /// <para>
+    /// It deliberately applies rather than discards. A line that has just been dragged out is work
+    /// the user wants to keep; throwing it away because they reached for the key that dismisses the
+    /// handles would be the more destructive reading of an ambiguous key. Enter still applies too,
+    /// so nothing that worked before changes.
+    /// </para>
+    /// <para>
+    /// It deliberately does NOT stop the active tool session. A shape or line tool holds a live
+    /// session the whole time it is selected - <see cref="ShapeToolMode.Preview"/> is a session, not
+    /// the absence of one - so <c>UpdateableChangeActive</c> is true even when the tool is sitting
+    /// idle. Keying off that tore the tool's own session down on an Escape press that was only ever
+    /// meant to deselect, and left undo tripping over the half-restarted session that replaced it.
+    /// </para>
+    /// <para>
+    /// This is the only command bound to Escape on purpose:
+    /// <see cref="Controllers.ShortcutController.KeyPressed"/> executes every command matching a
+    /// shortcut, so a second Escape binding would fire alongside this one and, for instance, clear
+    /// the selection as a side effect of finishing a line.
+    /// </para>
+    /// </remarks>
+    [Command.Basic("PixiEditor.Tools.EscapeCurrentAction", "ESCAPE_CURRENT_ACTION",
+        "ESCAPE_CURRENT_ACTION_DESCRIPTIVE", Key = Key.Escape, AnalyticsTrack = true)]
+    public void EscapeCurrentAction()
+    {
+        DocumentViewModel? doc = Owner.DocumentManagerSubViewModel.ActiveDocument;
+        if (doc is null)
+            return;
+
+        // An editable shape, line or transform: commit it, exactly as Enter would.
+        if (doc.IsChangeFeatureActive<ITransformableExecutor>())
+        {
+            doc.EventInlet.OnApplyTransform();
+            return;
+        }
+
+        // Nothing to finish, so fall back to the old meaning of the key.
+        if (!doc.SelectionPathBindable.IsEmpty)
+        {
+            doc.Operations.ClearSelection();
+        }
+    }
+
     [Command.Internal("PixiEditor.Tools.SwitchToolSet", AnalyticsTrack = true,
         CanExecute = "PixiEditor.HasNextToolSet")]
     [Command.Basic("PixiEditor.Tools.NextToolSet", true, "NEXT_TOOL_SET", "NEXT_TOOL_SET",
@@ -499,6 +553,19 @@ internal class ToolsViewModel : SubViewModel<ViewModelMain>, IToolsHandler
             parameter = context.Parameter;
         }
 
+        Type? targetType = parameter as Type ?? (parameter as ToolViewModel)?.GetType();
+
+        // Alt transiently switches to the color picker for every tool. A tool that uses Alt as its
+        // own modifier (the magic wand's select-all-of-color) would otherwise be swapped out
+        // before the click lands, so it keeps Alt for itself.
+        if (targetType is not null
+            && ActiveTool is { HandlesAltModifier: true }
+            && ActiveTool.GetType() != targetType
+            && GetTransientKey(targetType) == Key.LeftAlt)
+        {
+            return;
+        }
+
         if (parameter is Type type)
         {
             SetActiveTool(type, true, null);
@@ -508,6 +575,9 @@ internal class ToolsViewModel : SubViewModel<ViewModelMain>, IToolsHandler
         ToolViewModel tool = (ToolViewModel)parameter;
         SetActiveTool(tool, true, null, true);
     }
+
+    private static Key GetTransientKey(Type toolType) =>
+        toolType.GetCustomAttribute<Command.ToolAttribute>()?.Transient ?? Key.None;
 
     [Command.Basic("PixiEditor.Tools.IncreaseSize", 1d, "INCREASE_TOOL_SIZE", "INCREASE_TOOL_SIZE",
         CanExecute = "PixiEditor.Tools.CanChangeToolSize", Key = Key.OemCloseBrackets, AnalyticsTrack = true)]

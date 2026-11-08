@@ -69,4 +69,10 @@ internal interface IToolHandler : IHandler
     public void OnPreUndoInlet();
     public void OnPreRedoInlet();
     public void QuickToolSwitchInlet();
+
+    /// <summary>
+    /// True when the tool uses Alt as its own modifier. Alt otherwise transiently switches to the
+    /// color picker, which would swap the tool out from under the click.
+    /// </summary>
+    bool HandlesAltModifier => false;
 }
