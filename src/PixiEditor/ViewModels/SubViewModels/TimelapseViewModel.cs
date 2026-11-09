@@ -55,7 +55,7 @@ internal class TimelapseViewModel : SubViewModel<ViewModelMain>
             if (document is null)
                 return 0;
 
-            return recorder.TryGetSession(document.Id)?.FrameCount ?? 0;
+            return recorder.GetOrCreateSession(document).FrameCount;
         }
     }
 
@@ -176,8 +176,8 @@ internal class TimelapseViewModel : SubViewModel<ViewModelMain>
         if (document is null || isExporting)
             return;
 
-        TimelapseSession? session = recorder.TryGetSession(document.Id);
-        if (session is null || session.FrameCount == 0)
+        TimelapseSession session = recorder.GetOrCreateSession(document);
+        if (session.FrameCount == 0)
         {
             NoticeDialog.Show("TIMELAPSE_NO_FRAMES", "TIMELAPSE_EXPORT_REPLAY");
             return;
@@ -227,7 +227,7 @@ internal class TimelapseViewModel : SubViewModel<ViewModelMain>
         if (document is null)
             return;
 
-        recorder.TryGetSession(document.Id)?.DeleteFrames();
+        recorder.GetOrCreateSession(document).DeleteFrames();
         OnPropertyChanged(nameof(CurrentFrameCount));
         RefreshCommandStates();
     }

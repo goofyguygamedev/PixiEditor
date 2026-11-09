@@ -29,6 +29,7 @@ internal class ViewportOverlays
     public Viewport Viewport { get; set; }
 
     private GridLinesOverlay gridLinesOverlay;
+    private IsometricGridOverlay isometricGridOverlay;
     private SelectionOverlay selectionOverlay;
     private SymmetryOverlay symmetryOverlay;
     private LineToolOverlay lineToolOverlay;
@@ -46,6 +47,16 @@ internal class ViewportOverlays
         Viewport = viewport;
         gridLinesOverlay = new GridLinesOverlay();
         BindGridLines();
+
+        isometricGridOverlay = new IsometricGridOverlay();
+        isometricGridOverlay.Bind(Visual.IsVisibleProperty, new Binding
+        {
+            Source = ViewModelMain.Current.ViewportSubViewModel, Path = "IsometricGridEnabled", Mode = BindingMode.OneWay
+        });
+        isometricGridOverlay.Bind(IsometricGridOverlay.TileWidthProperty, new Binding
+        {
+            Source = Viewport, Path = "GridLinesXSize", Mode = BindingMode.OneWay
+        });
 
         selectionOverlay = new SelectionOverlay();
         BindSelectionOverlay();
@@ -85,6 +96,7 @@ internal class ViewportOverlays
         };
 
         Viewport.ActiveOverlays.Add(gridLinesOverlay);
+        Viewport.ActiveOverlays.Add(isometricGridOverlay);
         Viewport.ActiveOverlays.Add(referenceLayerOverlay);
         Viewport.ActiveOverlays.Add(selectionOverlay);
         Viewport.ActiveOverlays.Add(symmetryOverlay);

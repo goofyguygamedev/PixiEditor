@@ -1,5 +1,6 @@
 ﻿using Avalonia.Input;
 using PixiEditor.ChangeableDocument.Enums;
+using PixiEditor.ChangeableDocument.Helpers;
 using PixiEditor.Models.Commands.Attributes.Commands;
 using PixiEditor.Models.Commands.Attributes.Evaluators;
 using PixiEditor.Models.DocumentModels.UpdateableChangeExecutors.Features;
@@ -45,6 +46,17 @@ internal class SelectionViewModel : SubViewModel<ViewModelMain>
     public void InvertSelection()
     {
         Owner.DocumentManagerSubViewModel.ActiveDocument?.Operations.InvertSelection();
+    }
+
+    [Command.Basic("PixiEditor.Selection.Grow", SelectionModification.Grow, "GROW_SELECTION", "GROW_SELECTION_DESCRIPTIVE", CanExecute = "PixiEditor.Selection.IsNotEmpty",
+        MenuItemPath = "SELECT/SELECTION_MODIFY/GROW_SELECTION", MenuItemOrder = 16, Icon = PixiPerfectIcons.Square, AnalyticsTrack = true)]
+    [Command.Basic("PixiEditor.Selection.Shrink", SelectionModification.Shrink, "SHRINK_SELECTION", "SHRINK_SELECTION_DESCRIPTIVE", CanExecute = "PixiEditor.Selection.IsNotEmpty",
+        MenuItemPath = "SELECT/SELECTION_MODIFY/SHRINK_SELECTION", MenuItemOrder = 17, Icon = PixiPerfectIcons.Square, AnalyticsTrack = true)]
+    [Command.Basic("PixiEditor.Selection.Border", SelectionModification.Border, "BORDER_SELECTION", "BORDER_SELECTION_DESCRIPTIVE", CanExecute = "PixiEditor.Selection.IsNotEmpty",
+        MenuItemPath = "SELECT/SELECTION_MODIFY/BORDER_SELECTION", MenuItemOrder = 18, Icon = PixiPerfectIcons.Square, AnalyticsTrack = true)]
+    public void ModifySelection(SelectionModification modification)
+    {
+        Owner.DocumentManagerSubViewModel.ActiveDocument?.Operations.ModifySelection(modification, 1);
     }
 
     [Evaluator.CanExecute("PixiEditor.Selection.IsNotEmpty",

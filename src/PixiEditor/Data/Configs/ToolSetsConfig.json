@@ -146,13 +146,7 @@
           }
         },
         {
-          "ToolName": "RasterEllipse",
-          "Settings": {
-            "AntiAliasing": false
-          }
-        },
-        {
-          "ToolName": "RasterRectangle",
+          "ToolName": "RasterShape",
           "Settings": {
             "AntiAliasing": false
           }
@@ -179,6 +173,34 @@
             "AntiAliasing": false,
             "DefaultToolSize": 1,
             "DefaultBRUSH_SETTING": "PIXEL_CIRCLE"
+          }
+        },
+        {
+          "ToolName": "Liquify",
+          "Settings": {
+            "DefaultToolSize": 16,
+            "DefaultBrush": "PIXEL_CIRCLE",
+            "AntiAliasing": false
+          }
+        },
+        "Shade",
+        "GradientFill",
+        "Outline",
+        "CloneStamp",
+        {
+          "ToolName": "DitherPen",
+          "Settings": {
+            "DefaultToolSize": 4,
+            "DefaultBrush": "PIXEL_CIRCLE",
+            "AntiAliasing": false
+          }
+        },
+        {
+          "ToolName": "RampShade",
+          "Settings": {
+            "DefaultToolSize": 1,
+            "DefaultBrush": "PIXEL_CIRCLE",
+            "AntiAliasing": false
           }
         },
         "ColorPicker",
@@ -232,18 +254,10 @@
           "Icon": "icon-line"
         },
         {
-          "ToolName": "RasterEllipse",
+          "ToolName": "RasterShape",
           "Settings": {
             "AntiAliasing": true
-          },
-          "Icon": "icon-circle"
-        },
-        {
-          "ToolName": "RasterRectangle",
-          "Settings": {
-            "AntiAliasing": true
-          },
-          "Icon": "icon-square"
+          }
         },
         {
           "ToolName": "Text",
@@ -268,6 +282,16 @@
             "DefaultBRUSH_SETTING": "BASIC"
           }
         },
+        {
+          "ToolName": "Liquify",
+          "Settings": {
+            "DefaultToolSize": 16,
+            "AntiAliasing": true
+          }
+        },
+        "Shade",
+        "GradientFill",
+        "Outline",
         "ColorPicker",
         "Zoom"
       ]

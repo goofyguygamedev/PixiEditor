@@ -157,6 +157,39 @@ public class DocumentChangeTracker : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// What can be undone and redone, as readable names. One entry is one press of undo: automated
+    /// changes fold into the user action next to them, exactly as undoing them does.
+    /// </summary>
+    /// <returns>Undoable steps oldest first, then redoable steps nearest first.</returns>
+    public (List<string> Undo, List<string> Redo) GetHistoryLabels()
+    {
+        return (Describe(undoStack.Reverse()), Describe(redoStack));
+
+        static List<string> Describe(IEnumerable<(ActionSource source, List<Change> changes)> packets) =>
+            packets.Where(packet => packet.source == ActionSource.User && packet.changes.Count > 0)
+                .Select(packet => DescribeChange(packet.changes[^1]))
+                .ToList();
+    }
+
+    /// <summary>A change's class name, split up: DrawRasterLine_UpdateableChange reads "Draw Raster Line".</summary>
+    private static string DescribeChange(Change change)
+    {
+        string name = change.GetType().Name.Split('_')[0];
+        System.Text.StringBuilder label = new(name.Length + 4);
+        foreach (char character in name)
+        {
+            if (char.IsUpper(character) && label.Length > 0)
+            {
+                label.Append(' ');
+            }
+
+            label.Append(character);
+        }
+
+        return label.ToString();
+    }
+
     private List<IChangeInfo> Undo()
     {
         if (undoStack.Count == 0)

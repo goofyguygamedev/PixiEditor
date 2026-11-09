@@ -1431,6 +1431,53 @@ internal partial class DocumentViewModel : PixiObservableObject, IDocument
         OnPropertyChanged(nameof(AllChangesSaved));
         OnPropertyChanged(nameof(HasSavedUndo));
         OnPropertyChanged(nameof(HasSavedRedo));
+        RefreshHistory();
+    }
+
+    /// <summary>The steps shown in the History panel, oldest first.</summary>
+    public ObservableCollection<HistoryEntryViewModel> History { get; } = new();
+
+    /// <summary>The panel is for finding your way back, so the very oldest of a long session can go.</summary>
+    private const int MaxHistoryEntries = 150;
+
+    private void RefreshHistory()
+    {
+        (List<string> undo, List<string> redo) = Internals.Tracker.GetHistoryLabels();
+
+        History.Clear();
+
+        if (undo.Count <= MaxHistoryEntries)
+        {
+            History.Add(new HistoryEntryViewModel("Start", undo.Count == 0, false, () => JumpInHistory(-undo.Count)));
+        }
+
+        for (int i = Math.Max(0, undo.Count - MaxHistoryEntries); i < undo.Count; i++)
+        {
+            int stepsBack = undo.Count - 1 - i;
+            History.Add(new HistoryEntryViewModel(undo[i], stepsBack == 0, false, () => JumpInHistory(-stepsBack)));
+        }
+
+        for (int i = 0; i < redo.Count; i++)
+        {
+            int stepsForward = i + 1;
+            History.Add(new HistoryEntryViewModel(redo[i], false, true, () => JumpInHistory(stepsForward)));
+        }
+    }
+
+    /// <param name="steps">Negative undoes, positive redoes.</param>
+    private void JumpInHistory(int steps)
+    {
+        for (int i = 0; i < Math.Abs(steps); i++)
+        {
+            if (steps < 0)
+            {
+                Operations.Undo();
+            }
+            else
+            {
+                Operations.Redo();
+            }
+        }
     }
 
     /// <summary>

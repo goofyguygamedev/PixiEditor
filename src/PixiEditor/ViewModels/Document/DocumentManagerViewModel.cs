@@ -1,4 +1,7 @@
-﻿using System.Collections.Immutable;
+﻿using PixiEditor.ChangeableDocument.Helpers;
+using PixiEditor.Helpers.Extensions;
+using PixiEditor.Views.Dialogs;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using Avalonia.Input;
 using Avalonia.Threading;
@@ -88,6 +91,46 @@ internal class DocumentManagerViewModel : SubViewModel<ViewModelMain>, IDocument
         {
             Owner.FileSubViewModel.OpenFromPath(path);
         }
+    }
+
+    [Command.Basic("PixiEditor.Document.FlattenImage", "FLATTEN_IMAGE", "FLATTEN_IMAGE_DESCRIPTIVE",
+        CanExecute = "PixiEditor.HasDocument",
+        Icon = PixiPerfectIcons.Merge, MenuItemPath = "IMAGE/FLATTEN_IMAGE", MenuItemOrder = 19, AnalyticsTrack = true)]
+    public void FlattenImage() => ActiveDocument?.Operations.FlattenImage();
+
+    [Command.Basic("PixiEditor.Document.OffsetHalf", "OFFSET_HALF", "OFFSET_HALF_DESCRIPTIVE",
+        CanExecute = "PixiEditor.HasDocument",
+        Icon = PixiPerfectIcons.MoveView, MenuItemPath = "IMAGE/OFFSET_HALF", MenuItemOrder = 20, AnalyticsTrack = true)]
+    public void OffsetHalf()
+    {
+        if (ActiveDocument is null)
+            return;
+
+        ActiveDocument.Operations.OffsetCanvasWrapped(ActiveDocument.SizeBindable / 2,
+            ActiveDocument.AnimationDataViewModel.ActiveFrameBindable);
+    }
+
+    [Command.Basic("PixiEditor.Document.ReduceToPaletteNone", DitherMode.None, "REDUCE_PALETTE_NONE", "REDUCE_PALETTE_DESCRIPTIVE",
+        CanExecute = "PixiEditor.HasDocument", Icon = PixiPerfectIcons.Grid, MenuItemPath = "LAYER/REDUCE_TO_PALETTE/REDUCE_PALETTE_NONE", MenuItemOrder = 30)]
+    [Command.Basic("PixiEditor.Document.ReduceToPaletteBayer", DitherMode.Bayer4, "REDUCE_PALETTE_BAYER", "REDUCE_PALETTE_DESCRIPTIVE",
+        CanExecute = "PixiEditor.HasDocument", Icon = PixiPerfectIcons.Grid, MenuItemPath = "LAYER/REDUCE_TO_PALETTE/REDUCE_PALETTE_BAYER", MenuItemOrder = 31)]
+    [Command.Basic("PixiEditor.Document.ReduceToPaletteFloyd", DitherMode.FloydSteinberg, "REDUCE_PALETTE_FLOYD", "REDUCE_PALETTE_DESCRIPTIVE",
+        CanExecute = "PixiEditor.HasDocument", Icon = PixiPerfectIcons.Grid, MenuItemPath = "LAYER/REDUCE_TO_PALETTE/REDUCE_PALETTE_FLOYD", MenuItemOrder = 32)]
+    [Command.Basic("PixiEditor.Document.ReduceToPaletteAtkinson", DitherMode.Atkinson, "REDUCE_PALETTE_ATKINSON", "REDUCE_PALETTE_DESCRIPTIVE",
+        CanExecute = "PixiEditor.HasDocument", Icon = PixiPerfectIcons.Grid, MenuItemPath = "LAYER/REDUCE_TO_PALETTE/REDUCE_PALETTE_ATKINSON", MenuItemOrder = 33)]
+    public void ReduceToPalette(DitherMode mode)
+    {
+        if (ActiveDocument?.SelectedStructureMember is not ILayerHandler layer)
+            return;
+
+        if (ActiveDocument.Palette.Count == 0)
+        {
+            NoticeDialog.Show("REDUCE_PALETTE_EMPTY", "REDUCE_PALETTE_EMPTY_TITLE");
+            return;
+        }
+
+        ActiveDocument.Operations.ReduceToPalette(layer.Id, new PixiEditor.ChangeableDocument.Changeables.Graph.Palettes.Palette(ActiveDocument.Palette.Select(color => color.ToColor())),
+            mode, ActiveDocument.AnimationDataViewModel.ActiveFrameBindable);
     }
 
     [Command.Basic("PixiEditor.Document.ClipCanvas", "CLIP_CANVAS", "CLIP_CANVAS",

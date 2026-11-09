@@ -1,4 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using PixiEditor.ChangeableDocument.Changeables.Graph.Nodes.FilterNodes;
+using PixiEditor.ChangeableDocument.Changeables.Graph.Nodes.Effects;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
@@ -598,6 +600,64 @@ internal class LayersViewModel : SubViewModel<ViewModelMain>
     [Command.Basic("PixiEditor.Layer.MoveSelectedMemberDownwards", "MOVE_MEMBER_DOWN", "MOVE_MEMBER_DOWN_DESCRIPTIVE",
         CanExecute = "PixiEditor.Layer.HasMemberBelow", AnalyticsTrack = true)]
     public void MoveSelectedMemberDownwards() => MoveSelectedMember(false);
+
+    [Command.Basic("PixiEditor.Layer.AdjustColorAdjustments", typeof(ColorAdjustmentsFilterNode), "ADJ_COLOR", "ADJUSTMENT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "LAYER/ADJUSTMENTS/ADJ_COLOR", MenuItemOrder = 40, Icon = PixiPerfectIcons.Sun)]
+    [Command.Basic("PixiEditor.Layer.AdjustGrayscale", typeof(GrayscaleNode), "ADJ_GRAYSCALE", "ADJUSTMENT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "LAYER/ADJUSTMENTS/ADJ_GRAYSCALE", MenuItemOrder = 41, Icon = PixiPerfectIcons.Sun)]
+    [Command.Basic("PixiEditor.Layer.AdjustInvert", typeof(InvertFilterNode), "ADJ_INVERT", "ADJUSTMENT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "LAYER/ADJUSTMENTS/ADJ_INVERT", MenuItemOrder = 42, Icon = PixiPerfectIcons.Sun)]
+    [Command.Basic("PixiEditor.Layer.AdjustSepia", typeof(SepiaFilterNode), "ADJ_SEPIA", "ADJUSTMENT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "LAYER/ADJUSTMENTS/ADJ_SEPIA", MenuItemOrder = 43, Icon = PixiPerfectIcons.Sun)]
+    [Command.Basic("PixiEditor.Layer.AdjustBlur", typeof(BlurNode), "ADJ_BLUR", "ADJUSTMENT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "LAYER/ADJUSTMENTS/ADJ_BLUR", MenuItemOrder = 44, Icon = PixiPerfectIcons.Sun)]
+    [Command.Basic("PixiEditor.Layer.AdjustShadow", typeof(ShadowNode), "ADJ_SHADOW", "ADJUSTMENT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "LAYER/ADJUSTMENTS/ADJ_SHADOW", MenuItemOrder = 45, Icon = PixiPerfectIcons.Sun)]
+    [Command.Basic("PixiEditor.Layer.AdjustGlow", typeof(GlowNode), "ADJ_GLOW", "ADJUSTMENT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "LAYER/ADJUSTMENTS/ADJ_GLOW", MenuItemOrder = 46, Icon = PixiPerfectIcons.Sun)]
+    public void AddLayerAdjustment(Type filterNodeType)
+    {
+        var doc = Owner.DocumentManagerSubViewModel.ActiveDocument;
+        if (doc?.SelectedStructureMember is not { } member)
+            return;
+
+        doc.Operations.AddLayerFilter(filterNodeType, member);
+        Owner.WindowSubViewModel.ShowDockWindow(NodeGraphDockViewModel.TabId);
+    }
+
+    [Command.Basic("PixiEditor.Layer.EffectShadeEdges", typeof(ShadeEdgesNode), "FX_SHADE_EDGES", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_SHADE_EDGES", MenuItemOrder = 40, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectDither", typeof(DitherNode), "FX_DITHER", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_DITHER", MenuItemOrder = 41, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectLevels", typeof(LevelsNode), "FX_LEVELS", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_LEVELS", MenuItemOrder = 42, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectCurves", typeof(CurvesNode), "FX_CURVES", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_CURVES", MenuItemOrder = 43, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectPosterize", typeof(PosterizationNode), "FX_POSTERIZE", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_POSTERIZE", MenuItemOrder = 44, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectPixelate", typeof(PixelateNode), "FX_PIXELATE", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_PIXELATE", MenuItemOrder = 45, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectMotionBlur", typeof(MotionBlurNode), "FX_MOTION_BLUR", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_MOTION_BLUR", MenuItemOrder = 46, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectZoomBlur", typeof(ZoomBlurNode), "FX_ZOOM_BLUR", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_ZOOM_BLUR", MenuItemOrder = 47, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectSpinBlur", typeof(SpinBlurNode), "FX_SPIN_BLUR", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_SPIN_BLUR", MenuItemOrder = 48, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectVignette", typeof(VignetteNode), "FX_VIGNETTE", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_VIGNETTE", MenuItemOrder = 49, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectChromatic", typeof(ChromaticAberrationNode), "FX_CHROMATIC", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_CHROMATIC", MenuItemOrder = 50, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectReduceNoise", typeof(ReduceNoiseNode), "FX_REDUCE_NOISE", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_REDUCE_NOISE", MenuItemOrder = 51, Icon = PixiPerfectIcons.Blur)]
+    public void AddImageEffect(Type effectNodeType)
+    {
+        var doc = Owner.DocumentManagerSubViewModel.ActiveDocument;
+        if (doc is null)
+            return;
+
+        doc.Operations.AddImageEffect(effectNodeType);
+        Owner.WindowSubViewModel.ShowDockWindow(NodeGraphDockViewModel.TabId);
+    }
 
     [Command.Basic("PixiEditor.Layer.MergeSelected", "MERGE_ALL_SELECTED_LAYERS", "MERGE_ALL_SELECTED_LAYERS",
         CanExecute = "PixiEditor.Layer.HasMultipleSelectedMembers", AnalyticsTrack = true)]

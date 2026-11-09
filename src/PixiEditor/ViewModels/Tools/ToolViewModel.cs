@@ -364,6 +364,17 @@ internal abstract class ToolViewModel : ObservableObject, IToolHandler
         return foundSetting;
     }
 
+    /// <summary>Shows a toolbar setting only while it applies, re-checking when a trigger setting changes.</summary>
+    protected void ShowSettingWhen(string settingName, Func<bool> condition, params string[] triggerSettings)
+    {
+        var setting = Toolbar.GetSetting(settingName);
+        setting.IsExposed = condition();
+        foreach (string trigger in triggerSettings)
+        {
+            Toolbar.GetSetting(trigger).ValueChanged += (_, _) => setting.IsExposed = condition();
+        }
+    }
+
     protected T GetValue<T>([CallerMemberName] string name = null)
     {
         var setting = Toolbar.GetSetting(name);

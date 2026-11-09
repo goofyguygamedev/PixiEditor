@@ -76,6 +76,7 @@ internal class LayoutManager
         PaletteViewerDockViewModel paletteViewerDockViewModel =
             new(mainViewModel.ColorsSubViewModel, mainViewModel.DocumentManagerSubViewModel);
         TimelineDockViewModel timelineDockViewModel = new(mainViewModel.DocumentManagerSubViewModel);
+        HistoryDockViewModel historyDockViewModel = new(mainViewModel.DocumentManagerSubViewModel);
 
         NodeGraphDockViewModel nodeGraphDockViewModel = new(mainViewModel.DocumentManagerSubViewModel);
         /*
@@ -96,6 +97,7 @@ internal class LayoutManager
         RegisterDockable(swatchesDockViewModel);
         RegisterDockable(paletteViewerDockViewModel);
         RegisterDockable(timelineDockViewModel);
+        RegisterDockable(historyDockViewModel);
         RegisterDockable(nodeGraphDockViewModel);
         /*
         RegisterDockable(channelsDockDockViewModel);
@@ -131,7 +133,8 @@ internal class LayoutManager
                                 DockContext.CreateDockable(colorPickerDockViewModel),
                                 DockContext.CreateDockable(colorSldersDockViewModel),
                                 DockContext.CreateDockable(swatchesDockViewModel),
-                                DockContext.CreateDockable(paletteViewerDockViewModel)
+                                DockContext.CreateDockable(paletteViewerDockViewModel),
+                                DockContext.CreateDockable(historyDockViewModel)
                             ]
                         },
                         FirstSize = 0.6,

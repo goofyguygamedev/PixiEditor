@@ -1,5 +1,7 @@
 ﻿using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -106,20 +108,152 @@ internal class TimelapseRecorder
         this.activeDocumentGetter = activeDocumentGetter;
     }
 
-    public TimelapseSession? TryGetSession(Guid documentId) =>
-        sessions.TryGetValue(documentId, out TimelapseSession? session) ? session : null;
-
+    /// <summary>
+    /// The session for <paramref name="document"/>: its existing frames if it has any on disk, and
+    /// a move to a new folder if the document has been saved elsewhere since the last frame.
+    /// </summary>
+    /// <remarks>
+    /// Creates no directory, so the UI can ask a document how many frames it has without leaving an
+    /// empty folder behind for every document that is merely opened. The folder is created by the
+    /// write itself, at the point there is actually a frame to put in it.
+    /// </remarks>
     public TimelapseSession GetOrCreateSession(DocumentViewModel document)
     {
-        if (sessions.TryGetValue(document.Id, out TimelapseSession? existing))
+        string key = GetSessionKey(document);
+
+        if (!sessions.TryGetValue(document.Id, out TimelapseSession? existing))
+        {
+            TimelapseSession created = new(key, Path.Combine(RootFolder, key));
+            sessions[document.Id] = created;
+            return created;
+        }
+
+        if (existing.Key == key)
             return existing;
 
-        string folder = Path.Combine(RootFolder, document.Id.ToString("N"));
-        Directory.CreateDirectory(folder);
+        TimelapseSession rekeyed = Rekey(existing, key);
+        sessions[document.Id] = rekeyed;
+        return rekeyed;
+    }
 
-        TimelapseSession session = new(document.Id, folder);
-        sessions[document.Id] = session;
-        return session;
+    /// <summary>
+    /// Folder name a document's frames live under, derived from where the file is saved so that
+    /// closing it and opening it again tomorrow continues the same replay.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Deliberately not the document id. That id is a fresh <c>Guid.NewGuid()</c> on every load and
+    /// is never written into the .pixi file, so keying on it meant each reopen quietly started a new
+    /// replay in a new folder and orphaned the previous one on disk: a drawing worked on across
+    /// several evenings gave one replay per evening and no way to get the whole thing.
+    /// </para>
+    /// <para>
+    /// The file's own name goes in the folder name alongside the hash, so the timelapse directory
+    /// can be made sense of by hand. The hash is of the full path, so two files that share a name in
+    /// different folders do not share a replay.
+    /// </para>
+    /// <para>
+    /// A document that has never been saved has no stable identity to key on and falls back to its
+    /// id, which means a fresh folder per load. Saving it moves those frames onto the real key, so
+    /// nothing drawn before the first save is lost.
+    /// </para>
+    /// </remarks>
+    private static string GetSessionKey(DocumentViewModel document)
+    {
+        string? path = document.FullFilePath;
+        if (string.IsNullOrWhiteSpace(path))
+            return $"unsaved_{document.Id:N}";
+
+        string full;
+        try
+        {
+            full = Path.GetFullPath(path);
+        }
+        catch (Exception)
+        {
+            full = path; // Unparseable path: hash it as given rather than lose the session.
+        }
+
+        string normalized = full
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
+
+        // Windows and macOS treat paths differing only in case as the same file; Linux does not.
+        if (!System.OperatingSystem.IsLinux())
+            normalized = normalized.ToLowerInvariant();
+
+        string hash = Convert
+            .ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(normalized)))[..16]
+            .ToLowerInvariant();
+
+        string name = SanitizeName(Path.GetFileNameWithoutExtension(full));
+        return name.Length == 0 ? hash : $"{name}_{hash}";
+    }
+
+    /// <summary>Makes a file's name usable as a folder name, and short enough not to dominate it.</summary>
+    private static string SanitizeName(string name)
+    {
+        char[] invalid = Path.GetInvalidFileNameChars();
+        StringBuilder builder = new(name.Length);
+
+        foreach (char c in name)
+        {
+            if (builder.Length >= 40)
+                break;
+
+            builder.Append(c == ' ' || Array.IndexOf(invalid, c) >= 0 ? '_' : c);
+        }
+
+        return builder.ToString().Trim('_', '.');
+    }
+
+    /// <summary>
+    /// Moves a session's frames to the folder its new key names, which is what happens when a
+    /// document is saved for the first time or saved somewhere else.
+    /// </summary>
+    /// <remarks>
+    /// If the destination already holds a replay - that file has been recorded before - the frames
+    /// are appended to it and the old folder is left where it is, so neither recording is destroyed.
+    /// </remarks>
+    private TimelapseSession Rekey(TimelapseSession existing, string key)
+    {
+        string target = Path.Combine(RootFolder, key);
+
+        if (Directory.Exists(existing.FolderPath) && !Directory.Exists(target))
+        {
+            // A frame from the previous capture may still be queued for the old folder. Letting the
+            // queue drain first keeps it from being written into a folder that is about to move, or
+            // from recreating that folder afterwards with a single stray frame in it.
+            bool drained;
+            try
+            {
+                drained = FlushPendingWritesAsync().Wait(TimeSpan.FromSeconds(2));
+            }
+            catch (Exception)
+            {
+                drained = true; // A failed write has already been reported; it must not block this.
+            }
+
+            // Wedged queue: stay where we are and try again on the next capture rather than stall.
+            if (!drained)
+                return existing;
+
+            try
+            {
+                Directory.CreateDirectory(RootFolder);
+                Directory.Move(existing.FolderPath, target);
+            }
+            catch (Exception e)
+            {
+                // Recording into the new folder from here still beats dropping frames entirely.
+                ReportCaptureFailure(e);
+            }
+        }
+
+        return new TimelapseSession(key, target)
+        {
+            LastCapturedChangeGuid = existing.LastCapturedChangeGuid
+        };
     }
 
     /// <summary>
@@ -393,6 +527,9 @@ internal class TimelapseRecorder
                 {
                     try
                     {
+                        // Created here rather than when the session is resolved, so merely opening a
+                        // document does not litter the timelapse directory with empty folders.
+                        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                         File.WriteAllBytes(path, data);
                     }
                     catch (Exception e)
@@ -509,9 +646,7 @@ internal class TimelapseRecorder
             fps = Math.Max(1, (int)Math.Floor(frames.Count / MinReplaySeconds));
         }
 
-        VecI sourceSize = ToEvenSize(session.FrameSize == default
-            ? new VecI(frames[0].Size.X, frames[0].Size.Y)
-            : session.FrameSize);
+        VecI sourceSize = ToEvenSize(PickCommonFrameSize(frames, session.FrameSize));
 
         List<Image> composited = CompositeOntoBackground(frames, sourceSize, Options.Background);
         foreach (Image frame in frames)
@@ -539,6 +674,42 @@ internal class TimelapseRecorder
     }
 
     /// <summary>
+    /// The size a replay is encoded at when its frames are not all the same size.
+    /// </summary>
+    /// <remarks>
+    /// The most common size wins, with the last frame breaking ties, because that is both the shape
+    /// the session mostly looked like and the shape it ended on. Taking the last frame's size
+    /// outright - which is what this used to do - meant that switching capture source halfway
+    /// through squashed every frame from the first half into the second half's aspect ratio.
+    /// </remarks>
+    private static VecI PickCommonFrameSize(List<Image> frames, VecI fallback)
+    {
+        if (frames.Count == 0)
+            return fallback;
+
+        Dictionary<VecI, int> counts = new();
+        foreach (Image frame in frames)
+        {
+            VecI size = new(frame.Size.X, frame.Size.Y);
+            counts[size] = counts.GetValueOrDefault(size) + 1;
+        }
+
+        VecI chosen = new(frames[^1].Size.X, frames[^1].Size.Y);
+        int best = counts.GetValueOrDefault(chosen);
+
+        foreach ((VecI size, int count) in counts)
+        {
+            if (count <= best)
+                continue;
+
+            best = count;
+            chosen = size;
+        }
+
+        return chosen;
+    }
+
+    /// <summary>
     /// Flattens each frame onto an opaque background at one common size.
     /// </summary>
     /// <remarks>
@@ -555,8 +726,10 @@ internal class TimelapseRecorder
     /// </para>
     /// <para>
     /// Everything is fitted to one size because the encoder's pipe requires it, and frames can
-    /// legitimately differ: the canvas can be resized mid-session, and a whole-program recording
-    /// changes size whenever the window does.
+    /// legitimately differ: the canvas can be resized mid-session, the capture source can be
+    /// switched from the artwork to the whole program, and a whole-program recording changes size
+    /// whenever the window does. An odd-sized frame is scaled evenly on both axes and centred on
+    /// the background, so it is letterboxed rather than stretched into a shape it never had.
     /// </para>
     /// </remarks>
     private static List<Image> CompositeOntoBackground(
@@ -573,13 +746,17 @@ internal class TimelapseRecorder
                 using Surface surface = Surface.ForDisplay(size);
                 DrawBackground(surface, size, background, checkerPaint);
 
+                float scale = Math.Min(
+                    size.X / (float)frame.Size.X, size.Y / (float)frame.Size.Y);
+
                 var canvas = surface.DrawingSurface.Canvas;
                 canvas.Save();
 
-                if (frame.Size.X != size.X || frame.Size.Y != size.Y)
-                {
-                    canvas.Scale(size.X / (float)frame.Size.X, size.Y / (float)frame.Size.Y);
-                }
+                // Both of these are no-ops for a frame that is already the chosen size, which is
+                // every frame of an ordinary single-source recording.
+                canvas.Translate(
+                    (size.X - (frame.Size.X * scale)) / 2f, (size.Y - (frame.Size.Y * scale)) / 2f);
+                canvas.Scale(scale);
 
                 canvas.DrawImage(frame, 0, 0);
                 canvas.Restore();

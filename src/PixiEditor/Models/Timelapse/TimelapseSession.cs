@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using Drawie.Numerics;
 
@@ -9,13 +9,23 @@ namespace PixiEditor.Models.Timelapse;
 /// been written, and which document change was captured last.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Frames are kept as individual PNGs on disk rather than in memory. A long drawing session can
 /// produce thousands of frames, and holding them all in RAM at canvas resolution is not viable;
 /// on-disk frames also survive a crash, which is the case a timelapse is least forgiving about.
+/// </para>
+/// <para>
+/// A session is identified by <see cref="Key"/> - derived from where the document is saved, not
+/// from its runtime id - so closing a file and opening it again picks the same folder back up and
+/// continues the replay instead of starting another one beside it.
+/// </para>
 /// </remarks>
 internal class TimelapseSession
 {
-    public Guid DocumentId { get; }
+    /// <summary>
+    /// Name of this session's folder, stable across reopening the document it belongs to.
+    /// </summary>
+    public string Key { get; }
 
     public string FolderPath { get; }
 
@@ -30,9 +40,9 @@ internal class TimelapseSession
     /// </summary>
     public Guid? LastCapturedChangeGuid { get; set; }
 
-    public TimelapseSession(Guid documentId, string folderPath)
+    public TimelapseSession(string key, string folderPath)
     {
-        DocumentId = documentId;
+        Key = key;
         FolderPath = folderPath;
         FrameCount = CountExistingFrames(folderPath);
     }
@@ -76,8 +86,9 @@ internal class TimelapseSession
     }
 
     /// <summary>
-    /// Resumes numbering after a restart so an existing folder is appended to rather than
-    /// overwritten from frame zero.
+    /// Resumes numbering so an existing folder is appended to rather than overwritten from frame
+    /// zero. This is what makes a replay survive closing the document: the frames already in the
+    /// folder are counted, and the next capture carries on after them.
     /// </summary>
     private static int CountExistingFrames(string folderPath)
     {

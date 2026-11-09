@@ -5,6 +5,7 @@ using Drawie.Backend.Core.Surfaces;
 using Drawie.Backend.Core.Surfaces.PaintImpl;
 using Drawie.Numerics;
 using PixiEditor.ChangeableDocument.Changeables.Graph.Interfaces;
+using PixiEditor.ChangeableDocument.Helpers;
 using PixiEditor.ChangeableDocument.Rendering;
 
 namespace PixiEditor.ChangeableDocument.Changeables.Graph.Nodes.Effects;
@@ -28,6 +29,17 @@ public class OutlineNode : RenderNode, IRenderInput
     /// </summary>
     public InputProperty<VecD> Direction { get; }
 
+    /// <summary>
+    /// A filter chain applied to the finished outline, and to nothing else: the artwork it is drawn
+    /// around passes through untouched.
+    /// </summary>
+    /// <remarks>
+    /// Named and typed exactly as the layer and folder nodes' own filter input, so the same filter
+    /// nodes drive it and it reads the same way in the graph. Filtering the artwork as well is what
+    /// the layer's input is already for - wiring the same chain into both does that.
+    /// </remarks>
+    public InputProperty<Filter> Filters { get; }
+
     private Kernel simpleKernel = new Kernel(3, 3, [1, 1, 1, 1, 1, 1, 1, 1, 1]);
     private Kernel pixelPerfectKernel = new Kernel(3, 3, [0, 1, 0, 1, -4, 1, 0, 1, 0]);
 
@@ -40,6 +52,14 @@ public class OutlineNode : RenderNode, IRenderInput
     ]);
 
     private Paint paint;
+
+    /// <summary>
+    /// Carries <see cref="Filters"/> for the single draw that puts the finished outline on the
+    /// canvas. Kept apart from <see cref="paint"/>, which cannot hold them - see
+    /// <see cref="OnPaint"/>.
+    /// </summary>
+    private Paint filterPaint;
+
     private ImageFilter filter;
 
     // CreateCompose does not take ownership, so the parts have to outlive the composed filter and
@@ -60,8 +80,10 @@ public class OutlineNode : RenderNode, IRenderInput
         Softness = CreateInput("Softness", "SOFTNESS", 0.0)
             .WithRules(validator => validator.Min(0.0).Max(1.0));
         Direction = CreateInput("Direction", "DIRECTION", new VecD(0, 0));
+        Filters = CreateInput<Filter>("Filters", "FILTERS", null);
 
         paint = new Paint();
+        filterPaint = new Paint();
 
         Output.FirstInChain = null;
     }
@@ -161,7 +183,21 @@ public class OutlineNode : RenderNode, IRenderInput
 
             saved = surface.Save();
             surface.SetMatrix(Matrix3X3.Identity);
-            surface.DrawSurface(temp.DrawingSurface, 0, 0);
+
+            // The filters go on this draw, which happens once, rather than on the paint that does
+            // the dilation above - that one is reused once per unit of thickness, so a filter set
+            // there would be reapplied on every pass and compound: a hue shift five times over for
+            // a five pixel outline, and a blur five times as wide as asked for.
+            Filter? outlineFilters = Filters.Value;
+            if (outlineFilters is not null)
+            {
+                filterPaint.SetFilters(outlineFilters);
+                surface.DrawSurface(temp.DrawingSurface, 0, 0, filterPaint);
+            }
+            else
+            {
+                surface.DrawSurface(temp.DrawingSurface, 0, 0);
+            }
 
             surface.RestoreToCount(saved);
         }
@@ -213,6 +249,7 @@ public class OutlineNode : RenderNode, IRenderInput
         base.Dispose();
         DisposeFilters();
         paint?.Dispose();
+        filterPaint?.Dispose();
     }
 
     public override RectD? GetPreviewBounds(RenderContext ctx, string elementToRenderName = "")

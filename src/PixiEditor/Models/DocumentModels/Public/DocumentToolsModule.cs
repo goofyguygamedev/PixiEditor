@@ -1,5 +1,7 @@
 ﻿using PixiEditor.ChangeableDocument.Enums;
 using PixiEditor.Models.DocumentModels.UpdateableChangeExecutors;
+using PixiEditor.Models.Handlers.Tools;
+using PixiEditor.Models.DocumentModels.UpdateableChangeExecutors.Features;
 using PixiEditor.Models.Handlers;
 using PixiEditor.Models.Tools;
 using PixiEditor.ViewModels.Tools.Tools;
@@ -78,6 +80,43 @@ internal class DocumentToolsModule
     public void UseLassoTool() => Internals.ChangeController.TryStartExecutor<LassoToolExecutor>();
 
     public void UseMagicWandTool() => Internals.ChangeController.TryStartExecutor<MagicWandToolExecutor>();
+
+    public void UseLiquifyTool() => Internals.ChangeController.TryStartExecutor<LiquifyToolExecutor>();
+
+    public void UsePixelInkTool(IPixelInkToolHandler tool) =>
+        Internals.ChangeController.TryStartExecutor(new PixelInkToolExecutor(tool));
+
+    public void UseShadeTool()
+    {
+        // A live shade on a selection takes the press itself, to re-aim.
+        if (Internals.ChangeController.IsChangeOfTypeActive<IReaimableExecutor>())
+            return;
+
+        bool force = Internals.ChangeController.GetCurrentExecutorType() == ExecutorType.ToolLinked;
+        Internals.ChangeController.TryStartExecutor<ShadeToolExecutor>(force);
+    }
+
+    public void UseRasterShapeTool() =>
+        Internals.ChangeController.TryStartExecutor<RasterShapeToolExecutor>();
+
+    public void UseGradientFillTool()
+    {
+        // A live gradient takes the press itself, to re-aim.
+        if (Internals.ChangeController.IsChangeOfTypeActive<IReaimableExecutor>())
+            return;
+
+        bool force = Internals.ChangeController.GetCurrentExecutorType() == ExecutorType.ToolLinked;
+        Internals.ChangeController.TryStartExecutor<GradientFillToolExecutor>(force);
+    }
+
+    public void UseOutlineTool()
+    {
+        if (Internals.ChangeController.IsChangeOfTypeActive<IReaimableExecutor>())
+            return;
+
+        bool force = Internals.ChangeController.GetCurrentExecutorType() == ExecutorType.ToolLinked;
+        Internals.ChangeController.TryStartExecutor<OutlineToolExecutor>(force);
+    }
 
     public void UseBrushBasedTool(BrushBasedToolViewModel brushBasedToolViewModel) =>
         Internals.ChangeController.TryStartExecutor(new BrushBasedExecutor(brushBasedToolViewModel));

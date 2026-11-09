@@ -9,7 +9,7 @@ using PixiEditor.ViewModels.Tools.ToolSettings.Toolbars;
 
 namespace PixiEditor.ViewModels.Tools.Tools;
 
-[Command.Tool(Key = Key.R, CommonToolType = "Rectangle")]
+[Command.Tool(CommonToolType = "Rectangle")]
 internal class RasterRectangleToolViewModel : ShapeTool, IRasterRectangleToolHandler
 {
     private string defaultActionDisplay = "RECTANGLE_TOOL_ACTION_DISPLAY_DEFAULT";

@@ -8,7 +8,7 @@ using PixiEditor.UI.Common.Localization;
 
 namespace PixiEditor.ViewModels.Tools.Tools;
 
-[Command.Tool(Key = Key.C, CommonToolType = "Ellipse")]
+[Command.Tool(CommonToolType = "Ellipse")]
 internal class RasterEllipseToolViewModel : ShapeTool, IRasterEllipseToolHandler
 {
     private string defaultActionDisplay = "ELLIPSE_TOOL_ACTION_DISPLAY_DEFAULT";

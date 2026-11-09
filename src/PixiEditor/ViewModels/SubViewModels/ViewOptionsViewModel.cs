@@ -64,6 +64,21 @@ internal class ViewOptionsViewModel : SubViewModel<ViewModelMain>
         GridLinesEnabled = !GridLinesEnabled;
     }
 
+    private bool isometricGridEnabled;
+
+    public bool IsometricGridEnabled
+    {
+        get => isometricGridEnabled;
+        set => SetProperty(ref isometricGridEnabled, value);
+    }
+
+    [Command.Basic("PixiEditor.View.ToggleIsometricGrid", "TOGGLE_ISOMETRIC_GRID", "TOGGLE_ISOMETRIC_GRID",
+        MenuItemPath = "VIEW/TOGGLE_ISOMETRIC_GRID", MenuItemOrder = 30, Icon = PixiPerfectIcons.Grid)]
+    public void ToggleIsometricGrid()
+    {
+        IsometricGridEnabled = !IsometricGridEnabled;
+    }
+
     [Command.Basic("PixiEditor.View.ZoomIn", 1, "ZOOM_IN", "ZOOM_IN", CanExecute = "PixiEditor.HasDocument",
         Key = Key.OemPlus,
         Icon = PixiPerfectIcons.ZoomIn, AnalyticsTrack = true)]

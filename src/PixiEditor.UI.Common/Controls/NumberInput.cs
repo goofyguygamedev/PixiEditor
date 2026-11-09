@@ -148,11 +148,37 @@ public partial class NumberInput : TextBox
         set { SetValue(EnableScrollChangeProperty, value); }
     }
 
+    /// <summary>Pointer travel, in pixels, before a press on a grabber counts as a drag.</summary>
+    private const double ScrubThreshold = 3;
+
+    /// <summary>Narrowest a grabber may be and still be worth aiming at.</summary>
+    private const double MinGrabberWidth = 10;
+
+    private const double MaxGrabberWidth = 24;
+
+    /// <summary>Width kept clear in the middle, so there is always somewhere to click and type.</summary>
+    private const double MinTextWidth = 24;
+
+    private const double DefaultPixelsPerUnit = 5;
+    private const double FinePixelsPerUnit = 25;
+    private const double CoarsePixelsPerUnit = 1;
+
     private Control? leftGrabber;
     private Control? rightGrabber;
 
     private double _pressedValue;
     private double _pressedRelativeX;
+
+    /// <summary>A grabber is held down; it has not necessarily moved far enough to be a drag yet.</summary>
+    private bool grabberPressed;
+
+    private bool scrubbing;
+
+    /// <summary>
+    /// Sensitivity the drag is currently anchored against, so changing it mid-drag can re-anchor
+    /// instead of recomputing from the press point and jumping the value.
+    /// </summary>
+    private double anchoredPixelsPerUnit;
 
     private double scrollBuildup;
 
@@ -194,21 +220,32 @@ public partial class NumberInput : TextBox
 
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
-        if (!EnableGrabber)
+        base.OnSizeChanged(e);
+
+        if (!EnableGrabber || leftGrabber is null || rightGrabber is null)
         {
             return;
         }
 
-        if (e.NewSize.Width < 100)
-        {
-            rightGrabber.IsVisible = false;
-        }
+        // A quarter of the width on each side, but never too thin to hit and never wide enough to
+        // swallow the field. The right grabber used to be hidden outright below 100px wide, which
+        // is every field in the tool toolbar: a 53px tolerance box was left with a single 13px
+        // strip at its left edge as the only place a drag could start. Worse, that IsVisible was
+        // never set back to true, so a field that later grew stayed one-sided for good.
+        double grabberWidth = Math.Clamp(e.NewSize.Width / 4, MinGrabberWidth, MaxGrabberWidth);
+        grabberWidth = Math.Min(grabberWidth, Math.Max(0, (e.NewSize.Width - MinTextWidth) / 2));
 
-        leftGrabber.Height = e.NewSize.Height - 10;
-        leftGrabber.Width = e.NewSize.Width / 4f;
+        // Too cramped to give up the room: no grabbers rather than an unusable field.
+        bool fits = grabberWidth >= MinGrabberWidth;
+        double grabberHeight = Math.Max(0, e.NewSize.Height - 10);
 
-        rightGrabber.Height = e.NewSize.Height - 10;
-        rightGrabber.Width = e.NewSize.Width / 4f;
+        leftGrabber.IsVisible = fits;
+        leftGrabber.Height = grabberHeight;
+        leftGrabber.Width = grabberWidth;
+
+        rightGrabber.IsVisible = fits;
+        rightGrabber.Height = grabberHeight;
+        rightGrabber.Width = grabberWidth;
     }
 
     private Control CreateMouseGrabber()
@@ -227,33 +264,101 @@ public partial class NumberInput : TextBox
 
     private void GrabberPressed(object sender, PointerPressedEventArgs e)
     {
-        e.Pointer.Capture(leftGrabber);
+        // Only the left button drags. Without this a right click on a grabber strip starts a scrub
+        // that the matching release never ends.
+        if (sender is not Control grabber || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        // The grabber that was actually pressed, rather than always the left one.
+        e.Pointer.Capture(grabber);
+
         _pressedValue = Value;
         _pressedRelativeX = e.GetPosition(this).X;
-        DraggingGrabber = true;
+        grabberPressed = true;
+        scrubbing = false;
+        anchoredPixelsPerUnit = 0;
         e.Handled = true;
     }
 
     private void GrabberMoved(object sender, PointerEventArgs e)
     {
-        if (e.Pointer.Captured != null &&
-            (e.Pointer.Captured.Equals(leftGrabber) || e.Pointer.Captured.Equals(rightGrabber)))
+        if (!grabberPressed)
         {
-            double relativeX = e.GetPosition(this).X;
-            double diff = relativeX - _pressedRelativeX;
-
-            double pixelsPerUnit = 5;
-
-            double newValue = _pressedValue + diff / pixelsPerUnit;
-            newValue = Math.Round(newValue, Math.Min(Decimals, 2));
-            Value = newValue;
-            e.Handled = true;
+            return;
         }
+
+        double diff = e.GetPosition(this).X - _pressedRelativeX;
+
+        // Nothing moves until the pointer has actually travelled. A press is otherwise a
+        // zero-length drag, which is what made these strips dead to clicking and typing.
+        if (!scrubbing)
+        {
+            if (Math.Abs(diff) < ScrubThreshold)
+            {
+                return;
+            }
+
+            scrubbing = true;
+            DraggingGrabber = true;
+        }
+
+        double pixelsPerUnit = GetPixelsPerUnit(e.KeyModifiers);
+
+        if (Math.Abs(pixelsPerUnit - anchoredPixelsPerUnit) > 0.001)
+        {
+            // Re-anchor on the current position instead of rescaling the whole travel so far, which
+            // would snap the value to wherever the new sensitivity says the press point maps to.
+            // Doing this on the first move also keeps the threshold from arriving as a small jump.
+            _pressedValue = Value;
+            _pressedRelativeX = e.GetPosition(this).X;
+            anchoredPixelsPerUnit = pixelsPerUnit;
+            e.Handled = true;
+            return;
+        }
+
+        Value = Math.Round(_pressedValue + (diff / pixelsPerUnit), Math.Min(Decimals, 2));
+        e.Handled = true;
+    }
+
+    /// <summary>
+    /// How far the pointer travels per unit of value. Shift is finer and Ctrl is coarser, which is
+    /// what makes a wide range reachable without giving up precision on a narrow one.
+    /// </summary>
+    private static double GetPixelsPerUnit(KeyModifiers modifiers)
+    {
+        if (modifiers.HasFlag(KeyModifiers.Shift))
+        {
+            return FinePixelsPerUnit;
+        }
+
+        return modifiers.HasFlag(KeyModifiers.Control) ? CoarsePixelsPerUnit : DefaultPixelsPerUnit;
     }
 
     private void GrabberReleased(object sender, PointerReleasedEventArgs e)
     {
+        if (!grabberPressed)
+        {
+            return;
+        }
+
+        bool wasScrubbing = scrubbing;
+
+        grabberPressed = false;
+        scrubbing = false;
         DraggingGrabber = false;
+        e.Pointer.Capture(null);
+
+        // A press that never moved was a click on the field, so give it the focus and selection it
+        // would have got had the grabber not been sitting on top of that part of the box.
+        if (!wasScrubbing)
+        {
+            Focus();
+            SelectAll();
+        }
+
+        e.Handled = true;
     }
 
     private void BindTextBoxBehavior(TextBoxFocusBehavior behavior)

@@ -1,8 +1,11 @@
+﻿using PixiEditor.ChangeableDocument.Changeables.Graph.Nodes.FilterNodes;
+using PixiEditor.ChangeableDocument.Changeables.Graph.Palettes;
 ﻿using System.Collections.Immutable;
 using PixiEditor.ChangeableDocument;
 using PixiEditor.ChangeableDocument.Actions;
 using PixiEditor.Helpers.Extensions;
 using PixiEditor.ChangeableDocument.Actions.Generated;
+using PixiEditor.ChangeableDocument.Helpers;
 using PixiEditor.ChangeableDocument.Actions.Undo;
 using PixiEditor.ChangeableDocument.Changeables.Graph.Nodes;
 using PixiEditor.ChangeableDocument.Enums;
@@ -951,6 +954,93 @@ internal class DocumentOperationsModule : IDocumentOperations
         {
             Internals.ActionAccumulator.AddFinishedActions();
         }
+    }
+
+    public void ModifySelection(SelectionModification modification, int amount)
+    {
+        if (Internals.ChangeController.IsBlockingChangeActive)
+            return;
+
+        Internals.ChangeController.TryStopActiveExecutor();
+        Internals.ActionAccumulator.AddFinishedActions(new ModifySelection_Action(modification, amount));
+    }
+
+    public void OffsetCanvasWrapped(VecI offset, int frame)
+    {
+        if (Internals.ChangeController.IsBlockingChangeActive)
+            return;
+
+        Internals.ChangeController.TryStopActiveExecutor();
+        Internals.ActionAccumulator.AddFinishedActions(new OffsetCanvasWrapped_Action(offset, frame));
+    }
+
+    public void ReduceToPalette(Guid member, Palette palette, DitherMode mode, int frame)
+    {
+        if (Internals.ChangeController.IsBlockingChangeActive)
+            return;
+
+        Internals.ChangeController.TryStopActiveExecutor();
+        Internals.ActionAccumulator.AddFinishedActions(new ReduceToPalette_Action(member, palette, mode, frame));
+    }
+
+    /// <summary>
+    /// Adds a filter to the end of a layer's filter chain, so it affects that layer alone and stays
+    /// editable in the node graph.
+    /// </summary>
+    public void AddLayerFilter(Type filterNodeType, IStructureMemberHandler member)
+    {
+        if (Internals.ChangeController.IsBlockingChangeActive)
+            return;
+
+        Internals.ChangeController.TryStopActiveExecutor();
+
+        Guid id = Guid.NewGuid();
+        List<IAction> actions = [new CreateNode_Action(filterNodeType, id, Guid.Empty)];
+
+        if (member.InputPropertyMap[StructureNode.FiltersPropertyName].ConnectedOutput is { } previous)
+        {
+            actions.Add(new ConnectProperties_Action(id, previous.Node.Id, FilterNode.InputPropertyName, previous.PropertyName));
+        }
+
+        actions.Add(new ConnectProperties_Action(member.Id, id, StructureNode.FiltersPropertyName, FilterNode.OutputPropertyName));
+        actions.Add(new NodePosition_Action([id], member.PositionBindable + new VecD(-260, 120)));
+        actions.Add(new EndNodePosition_Action());
+
+        Internals.ActionAccumulator.AddFinishedActions(actions.ToArray());
+    }
+
+    /// <summary>Adds an effect over the whole image, just before the graph's output.</summary>
+    public void AddImageEffect(Type effectNodeType)
+    {
+        if (Internals.ChangeController.IsBlockingChangeActive)
+            return;
+
+        Internals.ChangeController.TryStopActiveExecutor();
+
+        INodeHandler output = Document.NodeGraphHandler.OutputNode;
+        Guid id = Guid.NewGuid();
+        List<IAction> actions = [new CreateNode_Action(effectNodeType, id, Guid.Empty)];
+
+        if (output.InputPropertyMap[OutputNode.InputPropertyName].ConnectedOutput is { } previous)
+        {
+            actions.Add(new ConnectProperties_Action(id, previous.Node.Id, "Background", previous.PropertyName));
+        }
+
+        actions.Add(new ConnectProperties_Action(output.Id, id, OutputNode.InputPropertyName, "Output"));
+        actions.Add(new NodePosition_Action([id], output.PositionBindable + new VecD(-260, 0)));
+        actions.Add(new EndNodePosition_Action());
+
+        Internals.ActionAccumulator.AddFinishedActions(actions.ToArray());
+    }
+
+    public void FlattenImage()
+    {
+        List<Guid> members = Document.NodeGraphHandler.AllNodes
+            .OfType<IStructureMemberHandler>()
+            .Select(member => member.Id)
+            .ToList();
+
+        MergeStructureMembers(members);
     }
 
     public void InvertSelection()
