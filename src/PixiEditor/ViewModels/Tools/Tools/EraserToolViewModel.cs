@@ -18,6 +18,9 @@ internal class EraserToolViewModel : BrushBasedToolViewModel, IEraserToolHandler
 
     public override bool IsErasable => true;
 
+    [Settings.Bool("ERASER_USE_COLOR_ALPHA_LABEL", true, ExposedByDefault = true)]
+    public bool UseColorAlpha => GetValue<bool>();
+
     public override string ToolNameLocalizationKey => "ERASER_TOOL";
     public override string DefaultIcon => PixiPerfectIcons.Eraser;
 

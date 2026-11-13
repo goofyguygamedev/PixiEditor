@@ -16,8 +16,15 @@ internal class EraserToolExecutor : BrushBasedExecutor<IEraserToolHandler>
         var point = GetStabilizedPoint();
         point = ApplyPixelCenterSnapping(point);
 
-        Color primaryColor = controller.EditorData.PrimaryColor.WithAlpha(0);
-        EditorData data = new EditorData(primaryColor, controller.EditorData.SecondaryColor);
+        Color pickedColor = controller.EditorData.PrimaryColor;
+
+        // An alpha of 0 is what marks a stroke as an erase, so the strength has to travel separately.
+        double? eraseStrength = BrushTool is IEraserToolHandler { UseColorAlpha: true }
+            ? pickedColor.A / 255d
+            : null;
+
+        EditorData data = new EditorData(pickedColor.WithAlpha(0), controller.EditorData.SecondaryColor,
+            eraseStrength);
         createLine = createLine && document.LastBrushToolUseEndPositionBindable is not null;
         if (createLine && document.LastBrushToolUseEndPositionBindable is VecD lastToolUsePosition)
         {
