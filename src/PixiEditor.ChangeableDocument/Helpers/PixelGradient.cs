@@ -1,4 +1,4 @@
-using Drawie.Backend.Core.ColorsImpl;
+﻿using Drawie.Backend.Core.ColorsImpl;
 using Drawie.Numerics;
 
 namespace PixiEditor.ChangeableDocument.Helpers;
@@ -92,10 +92,18 @@ public static class PixelGradient
     }
 
     /// <summary>Applies the falloff to a position, which is where banding and dithering happen.</summary>
-    public static double Quantize(double position, GradientStyle style, int x, int y)
+    public static double Quantize(double position, GradientStyle style, int x, int y) =>
+        Quantize(position, style.Falloff, style.Steps, style.Pattern, x, y);
+
+    /// <summary>
+    /// The falloff on its own, for anything that shapes a 0-to-1 ramp the way the gradient does
+    /// without being a gradient: the glow's distance ramp, for one.
+    /// </summary>
+    public static double Quantize(double position, ShadeFalloff falloff, int stepCount, OrderedDither pattern,
+        int x, int y)
     {
-        int steps = Math.Max(2, style.Steps);
-        switch (style.Falloff)
+        int steps = Math.Max(2, stepCount);
+        switch (falloff)
         {
             case ShadeFalloff.Hard:
                 return position < 0.5 ? 0 : 1;
@@ -104,7 +112,7 @@ public static class PixelGradient
             case ShadeFalloff.Dithered:
                 double scaled = position * (steps - 1);
                 double lower = Math.Floor(scaled);
-                double level = scaled - lower > Threshold(style.Pattern, x, y) ? lower + 1 : lower;
+                double level = scaled - lower > Threshold(pattern, x, y) ? lower + 1 : lower;
                 return Math.Min(level, steps - 1) / (steps - 1);
             default:
                 return position;
@@ -124,11 +132,15 @@ public static class PixelGradient
 
         byte[] output = new byte[width * height * 4];
 
-        for (int y = 0; y < height; y++)
+        // A row at a time across the available cores. Every row writes its own slice of the output
+        // and everything read is immutable, so there is nothing to synchronise. This is the live
+        // preview of a drag, so it runs again for every pointer move and has to be quick.
+        Parallel.For(0, height, y =>
         {
+            int rowStart = y * width;
             for (int x = 0; x < width; x++)
             {
-                int index = (y * width) + x;
+                int index = rowStart + x;
                 if (mask is not null && !mask[index])
                 {
                     continue;
@@ -141,15 +153,30 @@ public static class PixelGradient
                 output[offset] = Mix(from.R, to.R, amount);
                 output[offset + 1] = Mix(from.G, to.G, amount);
                 output[offset + 2] = Mix(from.B, to.B, amount);
-                output[offset + 3] = (byte)Math.Clamp(Math.Round(Mix(from.A, to.A, amount) * strength), 0, 255);
+                output[offset + 3] = Round(Mix(from.A, to.A, amount) * strength);
             }
-        }
+        });
 
         return output;
     }
 
     private static double WrapTurn(double turn) => turn < 0 ? turn + 1 : turn;
 
-    private static byte Mix(byte from, byte to, double amount) =>
-        (byte)Math.Clamp(Math.Round(from + ((to - from) * amount)), 0, 255);
+    private static byte Mix(byte from, byte to, double amount) => Round(from + ((to - from) * amount));
+
+    /// <summary>
+    /// Rounds and clamps to a byte. Adding a half and truncating matches <see cref="Math.Round(double)"/>
+    /// for the values here, which are never negative, and costs a fraction of it: this runs four
+    /// times for every pixel of the canvas on every pointer move.
+    /// </summary>
+    private static byte Round(double value)
+    {
+        double rounded = value + 0.5;
+        if (rounded <= 0)
+        {
+            return 0;
+        }
+
+        return rounded >= 255.5 ? (byte)255 : (byte)rounded;
+    }
 }

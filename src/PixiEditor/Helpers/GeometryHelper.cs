@@ -4,6 +4,29 @@ namespace PixiEditor.Helpers;
 
 public static class GeometryHelper
 {
+    /// <summary>
+    /// Turns <paramref name="position"/> about <paramref name="origin"/> onto the nearest multiple
+    /// of <paramref name="stepDegrees"/>, keeping how far out it is.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="Get45IncrementedPosition"/>, which projects the point onto the nearest of
+    /// four lines and so pulls it in as it moves off axis, this one only turns it. That is what a
+    /// dragged handle wants: the angle locks and the length stays in the artist's control.
+    /// </remarks>
+    public static VecD GetAngleSnappedPosition(VecD origin, VecD position, double stepDegrees)
+    {
+        VecD line = position - origin;
+        if (stepDegrees <= 0 || line.LengthSquared <= 0)
+        {
+            return position;
+        }
+
+        double step = stepDegrees * Math.PI / 180;
+        double angle = Math.Round(Math.Atan2(line.Y, line.X) / step) * step;
+
+        return origin + new VecD(Math.Cos(angle) * line.Length, Math.Sin(angle) * line.Length);
+    }
+
     public static VecD Get45IncrementedPosition(VecD startPos, VecD curPos)
     {
         VecD[] positions =

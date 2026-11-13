@@ -1,4 +1,4 @@
-using Avalonia.Input;
+﻿using Avalonia.Input;
 using Drawie.Backend.Core.ColorsImpl;
 using Drawie.Numerics;
 using PixiEditor.ChangeableDocument.Actions.Generated;
@@ -124,7 +124,10 @@ internal class ShadeToolExecutor : UpdateableChangeExecutor, IMidChangeUndoableE
 
     public void OnMidChangeUndo()
     {
-        internals!.ActionAccumulator.AddFinishedActions(new EndShadeRegion_Action(), new Undo_Action());
+        // Two calls, not one: the accumulator closes the packet after each, and undo refuses to
+        // run while a packet is still open - so sending both at once would silently keep the change.
+        internals!.ActionAccumulator.AddFinishedActions(new EndShadeRegion_Action());
+        internals.ActionAccumulator.AddFinishedActions(new Undo_Action());
         onEnded!(this);
     }
 
