@@ -29,6 +29,8 @@ using PixiEditor.Views.Rendering;
 using PixiEditor.Zoombox;
 using Point = Avalonia.Point;
 
+using PixiEditor.ViewModels;
+
 namespace PixiEditor.Views.Main.ViewportControls;
 
 #nullable enable
@@ -507,6 +509,9 @@ internal partial class Viewport : UserControl, INotifyPropertyChanged
     private void OnUnload(object? sender, RoutedEventArgs e)
     {
         Document?.Operations.RemoveViewport(GuidValue);
+
+        if (ViewModelMain.Current?.ViewportSubViewModel is { } viewOptions)
+            viewOptions.GridSizeRequested -= OnGridSizeRequested;
     }
 
     private void OnLoad(object? sender, RoutedEventArgs e)
@@ -514,6 +519,20 @@ internal partial class Viewport : UserControl, INotifyPropertyChanged
         Document?.Operations.AddOrUpdateViewport(GetLocation());
         if (DataContext is IViewport viewportVm)
             viewportVm.SceneTextureKey = GuidValue;
+
+        // The grid's cell size is this control's own property, so anything wanting to set it - the
+        // sprite sheet layout, for one - has to reach every viewport through here.
+        if (ViewModelMain.Current?.ViewportSubViewModel is { } viewOptions)
+        {
+            viewOptions.GridSizeRequested -= OnGridSizeRequested;
+            viewOptions.GridSizeRequested += OnGridSizeRequested;
+        }
+    }
+
+    private void OnGridSizeRequested(VecD cellSize)
+    {
+        GridLinesXSize = Math.Max(1, cellSize.X);
+        GridLinesYSize = Math.Max(1, cellSize.Y);
     }
 
     private static void OnDocumentChange(AvaloniaPropertyChangedEventArgs<DocumentViewModel> e)

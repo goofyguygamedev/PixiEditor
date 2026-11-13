@@ -1,4 +1,5 @@
 ﻿using Avalonia.Input;
+using Drawie.Numerics;
 using PixiEditor.Extensions.CommonApi.UserPreferences.Settings.PixiEditor;
 using PixiEditor.Models.Commands.Attributes.Commands;
 
@@ -54,6 +55,20 @@ internal class ViewOptionsViewModel : SubViewModel<ViewModelMain>
         {
             MaxBilinearSampleSize = PixiEditorSettings.Performance.MaxBilinearSampleSize.Value;
         };
+    }
+
+    /// <summary>
+    /// Raised when something wants the grid set to a particular cell size - laying out a sprite
+    /// sheet, say. Each open viewport listens, because the size is its own property rather than
+    /// something kept here, and all of them should agree.
+    /// </summary>
+    public event Action<VecD>? GridSizeRequested;
+
+    /// <summary>Turns the grid on and sets its cells, so frame boundaries are visible.</summary>
+    public void ShowGridOfSize(VecD cellSize)
+    {
+        GridLinesEnabled = true;
+        GridSizeRequested?.Invoke(cellSize);
     }
 
     [Command.Basic("PixiEditor.View.ToggleGrid", "TOGGLE_GRIDLINES", "TOGGLE_GRIDLINES", Key = Key.OemTilde,

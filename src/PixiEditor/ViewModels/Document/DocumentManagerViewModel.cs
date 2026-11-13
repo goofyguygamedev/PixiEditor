@@ -93,6 +93,31 @@ internal class DocumentManagerViewModel : SubViewModel<ViewModelMain>, IDocument
         }
     }
 
+    /// <summary>
+    /// Sizes the canvas for a sprite sheet and turns the grid on at the frame size, so the
+    /// boundaries between frames are visible while drawing them.
+    /// </summary>
+    /// <remarks>
+    /// The grid is the underlay rather than a real layer: a layer would have to be hidden before
+    /// every export and would land in the sheet the one time it was forgotten.
+    /// </remarks>
+    [Command.Basic("PixiEditor.Document.SpriteSheetSetup", "SPRITE_SHEET_SETUP_TITLE",
+        "SPRITE_SHEET_SETUP_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        Icon = PixiPerfectIcons.Grid, MenuItemPath = "IMAGE/SPRITE_SHEET_SETUP_TITLE", MenuItemOrder = 21,
+        AnalyticsTrack = true)]
+    public async Task SpriteSheetSetup()
+    {
+        if (ActiveDocument is null)
+            return;
+
+        SpriteSheetSetupPopup popup = new(ActiveDocument.SizeBindable);
+        if (await popup.ShowDialog<bool>(MainWindow.Current) != true)
+            return;
+
+        ActiveDocument.Operations.ResizeCanvas(popup.CanvasSize, ResizeAnchor.TopLeft);
+        Owner.ViewportSubViewModel.ShowGridOfSize(popup.FrameSize);
+    }
+
     [Command.Basic("PixiEditor.Document.FlattenImage", "FLATTEN_IMAGE", "FLATTEN_IMAGE_DESCRIPTIVE",
         CanExecute = "PixiEditor.HasDocument",
         Icon = PixiPerfectIcons.Merge, MenuItemPath = "IMAGE/FLATTEN_IMAGE", MenuItemOrder = 19, AnalyticsTrack = true)]
