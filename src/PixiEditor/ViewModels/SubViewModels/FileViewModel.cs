@@ -109,7 +109,7 @@ internal class FileViewModel : SubViewModel<ViewModelMain>
 
     private void OpenHelloTherePopup()
     {
-        new HelloTherePopup(this).Show();
+        new HelloTherePopup().Show();
     }
 
     private void Owner_OnStartupEvent()
@@ -750,6 +750,9 @@ internal class FileViewModel : SubViewModel<ViewModelMain>
         Owner.WindowSubViewModel.CreateNewViewport(doc);
         Owner.WindowSubViewModel.MakeDocumentViewportActive(doc);
     }
+
+    /// <summary>Opens a document the editor built itself, as though it had just been created.</summary>
+    public void OpenGeneratedDocument(DocumentViewModel doc) => AddDocumentViewModelToTheSystem(doc);
 
     private void AddDocumentViewModelToTheSystem(DocumentViewModel doc)
     {

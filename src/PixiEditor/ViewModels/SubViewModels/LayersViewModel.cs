@@ -14,6 +14,10 @@ using PixiEditor.Models.Commands.Attributes.Commands;
 using PixiEditor.Models.Commands.Attributes.Evaluators;
 using PixiEditor.Models.Dialogs;
 using PixiEditor.Models.Handlers;
+using PixiEditor.Extensions.CommonApi.UserPreferences.Settings.PixiEditor;
+using PixiEditor.Views;
+using System.Runtime.CompilerServices;
+using PixiEditor.Views.Dialogs;
 using PixiEditor.Models.IO;
 using PixiEditor.Models.Layers;
 using Drawie.Numerics;
@@ -601,6 +605,116 @@ internal class LayersViewModel : SubViewModel<ViewModelMain>
         CanExecute = "PixiEditor.Layer.HasMemberBelow", AnalyticsTrack = true)]
     public void MoveSelectedMemberDownwards() => MoveSelectedMember(false);
 
+    /// <summary>
+    /// Opens the quick colour correction for one layer, as the button on its row in the layer panel
+    /// does. Without a layer id it corrects the selected layer, which is what the menu item and the
+    /// shortcut do.
+    /// </summary>
+    /// <remarks>
+    /// Unlike the adjustment menu below, this edits the layer's pixels there and then, and only
+    /// inside the selection when there is one. That is the point of it: a filter node covers the
+    /// whole layer and lives in the graph, which is more than a quick tweak to one corner needs.
+    /// </remarks>
+    /// <summary>
+    /// Lays every layer that has pixels out in a grid in a new document, each trimmed to its own
+    /// content, for use as a sprite sheet. Asks how much gap to leave and remembers the answer.
+    /// </summary>
+    /// <remarks>
+    /// Trimmed, so the cells are as small as the largest sprite needs rather than the size of the
+    /// canvas. That loses each layer's position on the canvas, which is the right trade for sprites
+    /// but the wrong one for animation frames that have to stay in register.
+    /// </remarks>
+    [Command.Basic("PixiEditor.Layer.LayersToSpriteAtlas", "LAYERS_TO_SPRITE_ATLAS",
+        "LAYERS_TO_SPRITE_ATLAS_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/LAYERS_TO_SPRITE_ATLAS", MenuItemOrder = 80,
+        Icon = PixiPerfectIcons.Grid, AnalyticsTrack = true)]
+    public async Task LayersToSpriteAtlas()
+    {
+        var doc = Owner.DocumentManagerSubViewModel.ActiveDocument;
+        if (doc is null)
+            return;
+
+        InputPopup spacingPrompt = new()
+        {
+            Title = new LocalizedString("LAYERS_TO_SPRITE_ATLAS"),
+            Label = new LocalizedString("SPRITE_ATLAS_SPACING_LABEL"),
+            InputText = PixiEditorSettings.Timelapse.SpriteAtlasSpacing.Value.ToString()
+        };
+
+        if (await spacingPrompt.ShowDialog<bool>(MainWindow.Current) != true)
+            return;
+
+        if (!int.TryParse(spacingPrompt.InputText, out int spacing) || spacing < 0)
+            spacing = 0;
+
+        PixiEditorSettings.Timelapse.SpriteAtlasSpacing.Value = spacing;
+
+        DocumentViewModel? atlas = SpriteAtlasRenderer.Render(doc, spacing);
+        if (atlas is null)
+        {
+            NoticeDialog.Show("SPRITE_ATLAS_NOTHING_TO_PACK", "LAYERS_TO_SPRITE_ATLAS");
+            return;
+        }
+
+        Owner.FileSubViewModel.OpenGeneratedDocument(atlas);
+    }
+
+    private readonly ConditionalWeakTable<IDocument, SoloView> soloViews = new();
+
+    /// <summary>
+    /// Shows one layer on its own, hiding every other layer, and puts them all back when switched
+    /// off. Without a layer id it solos the selected layer, which is what the menu item does.
+    /// </summary>
+    /// <remarks>
+    /// This really does change each layer's visibility rather than filtering what is rendered, so
+    /// it lands in the undo history - as one step, not one per layer. The upside is that nothing
+    /// about the document is in a state the rest of the editor does not already understand.
+    /// </remarks>
+    [Command.Basic("PixiEditor.Layer.SoloView", "SOLO_VIEW_LAYER", "SOLO_VIEW_LAYER_DESCRIPTIVE",
+        CanExecute = "PixiEditor.HasDocument", Icon = PixiPerfectIcons.Eye, AnalyticsTrack = true)]
+    public void SoloViewLayer(Guid memberGuid)
+    {
+        var doc = Owner.DocumentManagerSubViewModel.ActiveDocument;
+        if (doc is null)
+            return;
+
+        IStructureMemberHandler? member = memberGuid == Guid.Empty
+            ? doc.SelectedStructureMember
+            : doc.StructureHelper.Find(memberGuid);
+
+        if (member is null)
+            return;
+
+        // A live tool change would otherwise be left half finished underneath the visibility edits.
+        doc.Operations.TryStopToolLinkedExecutor();
+
+        SoloView solo = soloViews.GetValue(doc, _ => new SoloView());
+
+        using var block = doc.Operations.StartChangeBlock();
+        solo.Toggle(doc, member.Id);
+    }
+
+    [Command.Basic("PixiEditor.Layer.QuickAdjustColors", "QUICK_ADJUST_TITLE", "QUICK_ADJUST_DESCRIPTIVE",
+        CanExecute = "PixiEditor.HasDocument", Icon = PixiPerfectIcons.Sun, AnalyticsTrack = true)]
+    public async Task QuickAdjustColors(Guid memberGuid)
+    {
+        var doc = Owner.DocumentManagerSubViewModel.ActiveDocument;
+        if (doc is null)
+            return;
+
+        IStructureMemberHandler? member = memberGuid == Guid.Empty
+            ? doc.SelectedStructureMember
+            : doc.StructureHelper.Find(memberGuid);
+
+        if (member is null || member.IsLockedBindable)
+            return;
+
+        // A live tool change would otherwise be left half finished underneath the correction.
+        doc.Operations.TryStopToolLinkedExecutor();
+
+        await new QuickAdjustPopup(doc, member).ShowDialog();
+    }
+
     [Command.Basic("PixiEditor.Layer.AdjustColorAdjustments", typeof(ColorAdjustmentsFilterNode), "ADJ_COLOR", "ADJUSTMENT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
         MenuItemPath = "LAYER/ADJUSTMENTS/ADJ_COLOR", MenuItemOrder = 40, Icon = PixiPerfectIcons.Sun)]
     [Command.Basic("PixiEditor.Layer.AdjustGrayscale", typeof(GrayscaleNode), "ADJ_GRAYSCALE", "ADJUSTMENT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
@@ -649,6 +763,8 @@ internal class LayersViewModel : SubViewModel<ViewModelMain>
         MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_CHROMATIC", MenuItemOrder = 50, Icon = PixiPerfectIcons.Blur)]
     [Command.Basic("PixiEditor.Layer.EffectReduceNoise", typeof(ReduceNoiseNode), "FX_REDUCE_NOISE", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
         MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_REDUCE_NOISE", MenuItemOrder = 51, Icon = PixiPerfectIcons.Blur)]
+    [Command.Basic("PixiEditor.Layer.EffectPixelGlow", typeof(PixelGlowNode), "FX_PIXEL_GLOW", "IMAGE_EFFECT_DESCRIPTIVE", CanExecute = "PixiEditor.HasDocument",
+        MenuItemPath = "IMAGE/IMAGE_EFFECTS/FX_PIXEL_GLOW", MenuItemOrder = 52, Icon = PixiPerfectIcons.Sun)]
     public void AddImageEffect(Type effectNodeType)
     {
         var doc = Owner.DocumentManagerSubViewModel.ActiveDocument;
@@ -781,10 +897,10 @@ internal class LayersViewModel : SubViewModel<ViewModelMain>
         if (above && nextMergeableMember is null)
             return;
 
-        doc.Operations.MergeStructureMembers(new List<Guid>
-        {
-            member.Id, above ? nextMergeableMember.Id : previousMergeableMember.Id
-        });
+        IStructureMemberHandler mergeInto = above ? nextMergeableMember! : previousMergeableMember!;
+
+        // The layer being merged into keeps its name: merging down into "Terrain" leaves "Terrain".
+        doc.Operations.MergeStructureMembers([member.Id, mergeInto.Id], mergeInto.Id);
     }
 
     [Command.Basic("PixiEditor.Layer.MergeWithAbove", "MERGE_WITH_ABOVE", "MERGE_WITH_ABOVE_DESCRIPTIVE",

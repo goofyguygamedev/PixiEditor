@@ -148,6 +148,18 @@
                         </StackPanel>
                     </StackPanel>
                     <WrapPanel Orientation="Horizontal" Margin="0,3,3,3" x:CompileBindings="False">
+                        <Button Content="{DynamicResource icon-sun}"
+                                Classes="pixi-icon" FontSize="14" Margin="0,0,10,0"
+                                ui:Translator.TooltipKey="QUICK_ADJUST_TITLE"
+                                Command="{xaml:Command PixiEditor.Layer.QuickAdjustColors, UseProvided=True}"
+                                CommandParameter="{Binding $parent[UserControl].Layer.Id}"
+                                HorizontalAlignment="Right" />
+                        <Button Content="{DynamicResource icon-eye}"
+                                Classes="pixi-icon" FontSize="14" Margin="0,0,10,0"
+                                ui:Translator.TooltipKey="SOLO_VIEW_LAYER"
+                                Command="{xaml:Command PixiEditor.Layer.SoloView, UseProvided=True}"
+                                CommandParameter="{Binding $parent[UserControl].Layer.Id}"
+                                HorizontalAlignment="Right" />
                         <Button Content="{DynamicResource icon-link}"
                                 IsVisible="{Binding Layer.IsLinked, ElementName=uc, FallbackValue=False}"
                                 Classes="pixi-icon" FontSize="14" Margin="0,0,10,0"

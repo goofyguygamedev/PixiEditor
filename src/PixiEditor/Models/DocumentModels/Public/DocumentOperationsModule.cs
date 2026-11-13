@@ -660,7 +660,17 @@ internal class DocumentOperationsModule : IDocumentOperations
     /// <summary>
     /// Merge all structure members with the Guids inside <paramref name="members"/>
     /// </summary>
-    public void MergeStructureMembers(IReadOnlyList<Guid> members)
+    /// <summary>
+    /// Collapses several members into one new layer in their place.
+    /// </summary>
+    /// <param name="members">The members to merge. Fewer than two does nothing.</param>
+    /// <param name="keepNameOf">
+    /// Whose name the merged layer takes. Merging into a layer should leave that layer's name on
+    /// the result - merging "Layer 1" down into "Terrain" gives "Terrain", not "Layer 1" - so the
+    /// caller names the one being merged into. Left out, the first member's name is used, which is
+    /// all a merge of several layers at once can reasonably pick.
+    /// </param>
+    public void MergeStructureMembers(IReadOnlyList<Guid> members, Guid? keepNameOf = null)
     {
         if (Internals.ChangeController.IsBlockingChangeActive || members.Count < 2)
             return;
@@ -690,6 +700,10 @@ internal class DocumentOperationsModule : IDocumentOperations
 
         Guid newGuid = Guid.NewGuid();
 
+        IStructureMemberHandler? nameSource = keepNameOf is null
+            ? node
+            : Document.StructureHelper.FindNode<IStructureMemberHandler>(keepNameOf.Value) ?? node;
+
         Internals.ActionAccumulator.StartChangeBlock();
 
         //make a new layer, put combined image onto it, delete layers that were merged
@@ -697,10 +711,18 @@ internal class DocumentOperationsModule : IDocumentOperations
         Type layerToCreate = allVectorNodes ? typeof(VectorLayerNode) : typeof(ImageLayerNode);
         Internals.ActionAccumulator.AddActions(
             new CreateStructureMember_Action(parent.Id, newGuid, layerToCreate),
-            new StructureMemberName_Action(newGuid, node.NodeNameBindable),
+            new StructureMemberName_Action(newGuid, nameSource.NodeNameBindable),
             new CombineStructureMembersOnto_Action(members.ToHashSet(), newGuid));
         foreach (var member in members)
             Internals.ActionAccumulator.AddActions(new DeleteStructureMember_Action(member));
+
+        // Without this the selection lands on whatever happens to sit next to the hole the merged
+        // layers left, which is nearly always the layer below. The result of the merge is what the
+        // artist is working on, so that is what stays selected.
+        Internals.ActionAccumulator.AddActions(
+            new ClearSoftSelectedMembers_PassthroughAction(),
+            new SetSelectedMember_PassthroughAction(newGuid));
+
         Internals.ActionAccumulator.EndChangeBlock();
     }
 
@@ -987,6 +1009,33 @@ internal class DocumentOperationsModule : IDocumentOperations
     /// Adds a filter to the end of a layer's filter chain, so it affects that layer alone and stays
     /// editable in the node graph.
     /// </summary>
+    /// <summary>
+    /// Starts a live colour correction on a layer, or re-tunes the one already running, so a window
+    /// of sliders can be dragged against the canvas. Only the selection is touched when there is
+    /// one. Nothing is committed until <see cref="EndAdjustColors"/>.
+    /// </summary>
+    public void AdjustColors(IStructureMemberHandler member, ColorAdjustments adjustments)
+    {
+        if (Internals.ChangeController.IsBlockingChangeActive)
+            return;
+
+        bool drawOnMask = member is not ILayerHandler layer || layer.ShouldDrawOnMask;
+
+        Internals.ActionAccumulator.AddActions(new AdjustColors_Action(member.Id, adjustments, drawOnMask,
+            Document.AnimationHandler.ActiveFrameBindable));
+    }
+
+    /// <summary>Keeps the live colour correction as one undo step, or throws it away.</summary>
+    public void EndAdjustColors(bool keep)
+    {
+        Internals.ActionAccumulator.AddFinishedActions(new EndAdjustColors_Action());
+
+        if (!keep)
+        {
+            Internals.ActionAccumulator.AddFinishedActions(new Undo_Action());
+        }
+    }
+
     public void AddLayerFilter(Type filterNodeType, IStructureMemberHandler member)
     {
         if (Internals.ChangeController.IsBlockingChangeActive)
