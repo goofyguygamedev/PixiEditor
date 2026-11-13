@@ -369,7 +369,9 @@ public class BrushEngine : IDisposable
     {
         bool shouldErase = editorData.PrimaryColor.A == 0;
 
-        var imageBlendMode = shouldErase ? DrawingApiBlendMode.DstOut : brushNode.ImageBlendMode.Value;
+        var imageBlendMode = shouldErase
+            ? DrawingApiBlendMode.DstOut
+            : brushData.BlendMode.ToImageBlendMode(brushNode.ImageBlendMode.Value);
 
         if (!drawnOnce && target != null)
         {
@@ -377,7 +379,7 @@ public class BrushEngine : IDisposable
             lastPos = point;
             stamps = 0;
             target.SetBlendMode(imageBlendMode);
-            target.SetOpacity(brushNode.Opacity.Value);
+            target.SetOpacity(ResolveOpacity(brushNode.Opacity.Value, shouldErase, editorData.EraseStrength));
             ResetStartingTextures();
             brushNode.ResetContentTexture();
             drawnOnce = true;
@@ -473,7 +475,8 @@ public class BrushEngine : IDisposable
         {
             PointerInfo = pointerInfo with { PositionOnCanvas = point },
             EditorData = shouldErase
-                ? new EditorData(editorData.PrimaryColor.WithAlpha(255), editorData.SecondaryColor)
+                ? new EditorData(editorData.PrimaryColor.WithAlpha(255), editorData.SecondaryColor,
+                    editorData.EraseStrength)
                 : editorData,
             KeyboardInfo = keyboardInfo,
             DryRun = true
@@ -523,10 +526,9 @@ public class BrushEngine : IDisposable
         var previous = brushNode.Previous.Value;
         while (previous != null)
         {
-            var data = new BrushData(previous, brushData.TargetBrushNodeId)
-            {
-                AntiAliasing = brushData.AntiAliasing, StrokeWidth = brushData.StrokeWidth
-            };
+            // Same data, earlier graph in the chain: the artist's settings apply to every brush
+            // in it, not only the last one.
+            var data = brushData with { BrushGraph = previous };
 
             var previousBrushNode = previous.AllNodes.FirstOrDefault(x => x is BrushOutputNode) as BrushOutputNode;
             PaintBrush(target, data, point, previousBrushNode, context, rect, flipX, flipY);
@@ -534,6 +536,21 @@ public class BrushEngine : IDisposable
         }
 
         PaintBrush(target, brushData, point, brushNode, context, rect, flipX, flipY);
+    }
+
+    /// <summary>
+    /// The opacity the whole stroke is composited with. A partial erase is applied here rather than
+    /// to each stamp, because the stamps of one stroke overlap: taking a bit of alpha away per stamp
+    /// would add up to a full erase along the stroke, and only leave a partial one at its very ends.
+    /// </summary>
+    public static double ResolveOpacity(double brushOpacity, bool erasing, double? eraseStrength)
+    {
+        if (!erasing || eraseStrength is null)
+        {
+            return brushOpacity;
+        }
+
+        return brushOpacity * Math.Clamp(eraseStrength.Value, 0, 1);
     }
 
     private void TryUpdateShapeCache(ShapeVectorData vectorShape)
@@ -589,8 +606,10 @@ public class BrushEngine : IDisposable
         if (stroke != null)
             stroke.Transform = strokeTransform;
 
+        DrawingApiBlendMode stampBlendMode = brushData.BlendMode.ToStampBlendMode(brushNode.StampBlendMode.Value);
+
         if (PaintBrush(target, autoPosition, vectorShape, rect, fitToStrokeSize, pressure, content, contentTexture,
-                stampBlender, brushNode.StampBlendMode.Value, antiAliasing, fill, stroke, snapToPixels, canReuseStamps,
+                stampBlender, stampBlendMode, antiAliasing, fill, stroke, snapToPixels, canReuseStamps,
                 transform, flipX, flipY))
         {
             lastPos = point;

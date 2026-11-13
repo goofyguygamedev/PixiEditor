@@ -98,10 +98,9 @@ internal class LineBasedPen_UpdateableChange : UpdateableChange, IBudgetedUpdate
     {
         if (brushOutputNode != null)
         {
-            brushData = new BrushData(brushData.BrushGraph, brushData.TargetBrushNodeId)
-            {
-                StrokeWidth = strokeWidth, AntiAliasing = antiAliasing
-            };
+            // Only these two come from the change; everything else the toolbar put in the data,
+            // the blend mode included, has to survive.
+            brushData = brushData with { StrokeWidth = strokeWidth, AntiAliasing = antiAliasing };
         }
     }
 

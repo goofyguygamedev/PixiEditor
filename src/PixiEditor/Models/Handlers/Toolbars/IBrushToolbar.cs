@@ -8,6 +8,7 @@ namespace PixiEditor.Models.Handlers.Toolbars;
 internal interface IBrushToolbar : IToolbar, IToolSizeToolbar
 {
     public bool AntiAliasing { get; }
+    public BrushBlendMode BlendMode { get; set; }
     public Brush Brush { get; set; }
     public BrushData CreateBrushData();
     public BrushData LastBrushData { get; }

@@ -27,6 +27,12 @@ internal class BrushToolbar : Toolbar, IBrushToolbar
             value != null ? new BrushViewModel(value) : null;
     }
 
+    public BrushBlendMode BlendMode
+    {
+        get => GetSetting<EnumSettingViewModel<BrushBlendMode>>(nameof(BlendMode)).Value;
+        set => GetSetting<EnumSettingViewModel<BrushBlendMode>>(nameof(BlendMode)).Value = value;
+    }
+
     public double Stabilization
     {
         get => GetSetting<SizeSettingViewModel>(nameof(Stabilization)).Value;
@@ -44,13 +50,15 @@ internal class BrushToolbar : Toolbar, IBrushToolbar
         Brush? brush = Brush;
         if (brush == null)
         {
-            return new BrushData();
+            // Still carries the blend mode: it is the artist's choice, not the brush's, and it
+            // should survive a moment with no brush picked.
+            return new BrushData { BlendMode = BlendMode };
         }
 
         var pipe = Brush.Document.ShareGraph();
         var data = new BrushData(pipe.TryAccessData(), Brush.OutputNodeId)
         {
-            AntiAliasing = AntiAliasing, StrokeWidth = (float)ToolSize,
+            AntiAliasing = AntiAliasing, StrokeWidth = (float)ToolSize, BlendMode = BlendMode,
         };
 
         pipe.Dispose();
@@ -80,9 +88,12 @@ internal class BrushToolbar : Toolbar, IBrushToolbar
     public BrushToolbar()
     {
         AddSetting(new BoolSettingViewModel(nameof(AntiAliasing), "ANTI_ALIASING_SETTING") { IsExposed = false });
-        var setting = new SizeSettingViewModel(nameof(ToolSize), "TOOL_SIZE_LABEL", decimalPlaces: 1, min: 0.1);
+        // Whole pixels only, and at least one of them: a brush cannot paint a tenth of a pixel,
+        // and a size of zero paints nothing at all.
+        var setting = new SizeSettingViewModel(nameof(ToolSize), "TOOL_SIZE_LABEL");
         setting.ValueChanged += (_, _) => OnPropertyChanged(nameof(ToolSize));
         AddSetting(setting);
+        AddSetting(new EnumSettingViewModel<BrushBlendMode>(nameof(BlendMode), "BRUSH_BLEND_MODE_SETTING"));
         AddSetting(new BrushSettingViewModel(nameof(Brush), "BRUSH_SETTING")
         {
             IsExposed = true, IsLabelVisible = false
@@ -101,7 +112,7 @@ internal class BrushToolbar : Toolbar, IBrushToolbar
 
         foreach (var aSetting in Settings)
         {
-            if (aSetting.Name is "Brush" or "AntiAliasing" or "ToolSize")
+            if (aSetting.Name is "Brush" or "AntiAliasing" or "ToolSize" or "BlendMode")
             {
                 aSetting.ValueChanged += SettingOnValueChanged;
             }

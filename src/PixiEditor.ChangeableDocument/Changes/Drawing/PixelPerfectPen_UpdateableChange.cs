@@ -4,6 +4,8 @@ using Drawie.Backend.Core.Surfaces;
 using Drawie.Numerics;
 using PixiEditor.ChangeableDocument.ChangeInfos.Root;
 
+using PixiEditor.ChangeableDocument.Changeables.Brushes;
+
 namespace PixiEditor.ChangeableDocument.Changes.Drawing;
 
 internal class PixelPerfectPen_UpdateableChange : UpdateableChange
@@ -32,13 +34,17 @@ internal class PixelPerfectPen_UpdateableChange : UpdateableChange
     private int frame;
     private VecD? previousLastBrushToolUsePosition;
 
+    private readonly BrushBlendMode blendMode;
+
     [GenerateUpdateableChangeActions]
-    public PixelPerfectPen_UpdateableChange(Guid memberGuid, VecI pos, Color color, bool drawOnMask, int frame)
+    public PixelPerfectPen_UpdateableChange(Guid memberGuid, VecI pos, Color color, bool drawOnMask, int frame,
+        BrushBlendMode blendMode)
     {
         this.memberGuid = memberGuid;
         this.color = color;
         this.drawOnMask = drawOnMask;
         this.frame = frame;
+        this.blendMode = blendMode;
     }
 
     [UpdateChangeMethod]
@@ -52,7 +58,7 @@ internal class PixelPerfectPen_UpdateableChange : UpdateableChange
         if (!DrawingChangeHelper.IsValidForDrawing(target, memberGuid, drawOnMask, frame))
             return false;
         var image = DrawingChangeHelper.GetTargetImageOrThrow(target, memberGuid, drawOnMask, frame);
-        image.SetBlendMode(BlendMode.SrcOver);
+        image.SetBlendMode(blendMode.ToPixelBlendMode());
         previousLastBrushToolUsePosition = target.LastBrushToolUseEndPosition;
         DrawingChangeHelper.ApplyClipsSymmetriesEtc(target, image, memberGuid, drawOnMask);
         return true;
@@ -136,7 +142,7 @@ internal class PixelPerfectPen_UpdateableChange : UpdateableChange
         }
         else
         {
-            image.SetBlendMode(BlendMode.SrcOver);
+            image.SetBlendMode(blendMode.ToPixelBlendMode());
             DrawingChangeHelper.ApplyClipsSymmetriesEtc(target, image, memberGuid, drawOnMask);
             image.EnqueueDrawPixels(confirmedPixels, color, BlendMode.Src);
         }

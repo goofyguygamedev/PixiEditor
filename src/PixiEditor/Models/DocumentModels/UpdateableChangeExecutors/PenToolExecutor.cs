@@ -40,7 +40,7 @@ internal class PenToolExecutor : BrushBasedExecutor<IPenToolHandler>
             VecD prevPoint = snapToCentersOfPixels ? lastToolUsePosition.Floor() + new VecD(0.5) : lastToolUsePosition;
             IAction actionStart = pixelPerfect
                 ? new PixelPerfectPen_Action(layerId, (VecI)prevPoint.Floor(), color, drawOnMask,
-                    document!.AnimationHandler.ActiveFrameBindable)
+                    document!.AnimationHandler.ActiveFrameBindable, BrushToolbar.BlendMode)
                 : new LineBasedPen_Action(layerId, prevPoint, (float)ToolSize,
                     antiAliasing, BrushData, drawOnMask,
                     document!.AnimationHandler.ActiveFrameBindable, controller.LastPointerInfo, controller.LastKeyboardInfo,
@@ -56,7 +56,7 @@ internal class PenToolExecutor : BrushBasedExecutor<IPenToolHandler>
                 document!.AnimationHandler.ActiveFrameBindable, controller.LastPointerInfo, controller.LastKeyboardInfo,
                 controller.EditorData),
             true => new PixelPerfectPen_Action(layerId, (VecI)point.Floor(), color, drawOnMask,
-                document!.AnimationHandler.ActiveFrameBindable)
+                document!.AnimationHandler.ActiveFrameBindable, BrushToolbar.BlendMode)
         };
 
         if (handler != null)
