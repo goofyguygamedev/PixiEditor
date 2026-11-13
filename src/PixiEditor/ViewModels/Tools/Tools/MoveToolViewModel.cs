@@ -8,7 +8,7 @@ using PixiEditor.ViewModels.Tools.ToolSettings.Toolbars;
 
 namespace PixiEditor.ViewModels.Tools.Tools;
 
-[Command.Tool(Key = Key.V)]
+[Command.Tool(Key = Key.M)]
 internal class MoveToolViewModel : ToolViewModel, IMoveToolHandler
 {
     private string defaultActionDisplay = "MOVE_TOOL_ACTION_DISPLAY";
@@ -37,6 +37,13 @@ internal class MoveToolViewModel : ToolViewModel, IMoveToolHandler
         }
     }
 
+    /// <summary>
+    /// How far Shift and an arrow key move things. Lives on this tool because this is the tool for
+    /// moving, but it is read wherever the arrow keys nudge: a pasted image moves by the same step.
+    /// </summary>
+    [Settings.Size("MOVE_NUDGE_STEP_LABEL", 16d, Min = 1)]
+    public double NudgeStep => GetValue<double>();
+
     [Settings.Bool("_duplicate_on_move", ExposedByDefault = false)]
     public bool DuplicateOnMove
     {
@@ -50,6 +57,13 @@ internal class MoveToolViewModel : ToolViewModel, IMoveToolHandler
         get => GetValue<bool>();
         set => SetValue(value);
     }
+
+    /// <summary>
+    /// Alt widens a move to every layer the selection crosses, so it has to stay with this tool.
+    /// Without this, Alt transiently switches to the colour picker and the move is swapped out
+    /// from under the drag.
+    /// </summary>
+    public override bool HandlesAltModifier => true;
 
     public override Type[]? SupportedLayerTypes { get; } = null;
     public override Type LayerTypeToCreateOnEmptyUse { get; } = null;

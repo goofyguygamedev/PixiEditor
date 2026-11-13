@@ -39,6 +39,7 @@ internal class TransformSelectedExecutor : UpdateableChangeExecutor, ITransforma
     private bool duplicateOnStop = false;
 
     private List<Guid> disabledSnappingMembers = new();
+    private bool movingAllLayers;
 
     private List<ContextualOption> AlignmentOptions { get; } = new()
     {
@@ -110,10 +111,8 @@ internal class TransformSelectedExecutor : UpdateableChangeExecutor, ITransforma
         }
 
         tool.TransformingSelectedArea = true;
-        List<IStructureMemberHandler> members = new();
         originalSelectedMembers = document.SelectedMembers.ToList();
-        var guids = document.ExtractSelectedLayers(false);
-        members = guids.Select(g => document.StructureHelper.Find(g)).ToList();
+        List<IStructureMemberHandler> members = GatherMembers();
 
         if (!members.Any())
             return ExecutionState.Success; // Listen for click events only
@@ -215,6 +214,83 @@ internal class TransformSelectedExecutor : UpdateableChangeExecutor, ITransforma
         return ExecutionState.Success;
     }
 
+    /// <summary>
+    /// Whether this move should reach past the layers picked in the layer panel. Alt only widens
+    /// the move when there is a selection to widen it to: without one there is no shared area to
+    /// take out of every layer, and the move would drag whole layers around by surprise.
+    /// </summary>
+    private bool ShouldMoveAllLayers() =>
+        controller!.AltPressed && document!.SelectionPathBindable is { IsEmpty: false };
+
+    /// <summary>
+    /// The layers this move applies to: the ones picked in the layer panel, or, with Alt held,
+    /// every raster layer the selection crosses, so one drag takes the selected pixels out of all
+    /// of them at once. Hidden and locked layers stay out of it either way.
+    /// </summary>
+    private List<IStructureMemberHandler> GatherMembers()
+    {
+        movingAllLayers = ShouldMoveAllLayers();
+
+        if (movingAllLayers)
+        {
+            return MovableRasterLayers(document!.StructureHelper.GetAllMembers());
+        }
+
+        return document!.ExtractSelectedLayers(false)
+            .Select(guid => document.StructureHelper.Find(guid))
+            .Where(member => member is not null)
+            .ToList()!;
+    }
+
+    /// <summary>
+    /// The layers an Alt move is allowed to touch. Raster only, because a canvas selection has no
+    /// meaning for a vector layer and moving one whole would be a different thing entirely; and
+    /// nothing hidden or locked, which the artist has already said to leave alone.
+    /// </summary>
+    internal static List<IStructureMemberHandler> MovableRasterLayers(
+        IEnumerable<IStructureMemberHandler> members) =>
+        members.OfType<IRasterLayerHandler>()
+            .Where(layer => layer.IsVisibleStructurally && !layer.IsLockedStructurally)
+            .Cast<IStructureMemberHandler>()
+            .ToList();
+
+    /// <summary>
+    /// Alt is read while the transform box is up but before anything has moved, so the box can
+    /// grow to cover every layer the moment Alt goes down and shrink back when it comes up. Once
+    /// the first move is committed the scope is fixed: changing it then would mean quietly undoing
+    /// a move that has already happened.
+    /// </summary>
+    private void ReactToScopeChange()
+    {
+        if (!isInProgress || movedOnce || duplicateOnStop)
+            return;
+
+        if (ShouldMoveAllLayers() == movingAllLayers)
+            return;
+
+        document!.TransformHandler.HideTransform();
+        document.TransformHandler.TransformLockedChanged -= OnTransformHandlerOnTransformLockedChanged;
+        document.ContextualOptionsHandler.Hide();
+
+        RestoreSnapping();
+        disabledSnappingMembers.Clear();
+        selectedMembers.Clear();
+        memberCorners.Clear();
+        isInProgress = false;
+
+        SelectMembers(GatherMembers());
+    }
+
+    public override void OnConvertedKeyDown(Key key)
+    {
+        ReactToScopeChange();
+    }
+
+    public override void OnConvertedKeyUp(Key key)
+    {
+        ReactToScopeChange();
+    }
+
     private void OnTransformHandlerOnTransformLockedChanged(bool isLocked)
     {
         if (isLocked)
@@ -227,8 +303,17 @@ internal class TransformSelectedExecutor : UpdateableChangeExecutor, ITransforma
         }
     }
 
+    public override void OnPrecisePositionChange(MouseOnCanvasEventArgs args)
+    {
+        // The pointer carries the modifier state that is true right now, so this is also where a
+        // stuck Alt gets noticed and the scope put back.
+        ReactToScopeChange();
+    }
+
     public override void OnLeftMouseButtonDown(MouseOnCanvasEventArgs args)
     {
+        ReactToScopeChange();
+
         args.Handled = true;
 
         if (args.ClickCount >= 2)

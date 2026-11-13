@@ -21,8 +21,14 @@ internal class ChangeExecutionController
 {
     public bool LeftMousePressed { get; private set; }
     public bool RightMousePressed { get; private set; }
-    public bool ShiftPressed { get; private set; }
-    public bool CtrlPressed { get; private set; }
+    // Read from the live keyboard state rather than kept as their own fields, which is what these
+    // were: nothing ever assigned them, so every tool that asked whether Shift or Ctrl was held got
+    // false and its modifier quietly did nothing.
+    public bool ShiftPressed => lastKeyboardInfo.IsShiftPressed;
+
+    public bool CtrlPressed => lastKeyboardInfo.IsCtrlPressed;
+
+    public bool AltPressed => lastKeyboardInfo.IsAltPressed;
     public ShapeCorners LastTransformState { get; private set; }
     public VecI LastPixelPosition => lastPixelPos;
     public VecD LastPrecisePosition => lastPrecisePos;
@@ -168,14 +174,16 @@ internal class ChangeExecutionController
 
     public void ConvertedKeyDownInlet(FilteredKeyEventArgs key)
     {
-        currentSession?.OnConvertedKeyDown(key.Key);
+        // Recorded before the session is told, so an executor asking which modifiers are held
+        // inside its key handler sees this key rather than the one before it.
         lastKeyboardInfo = UpdateKeyboardInfo(key.IsCtrlDown, key.IsShiftDown, key.IsAltDown, key.IsMetaDown);
+        currentSession?.OnConvertedKeyDown(key.Key);
     }
 
     public void ConvertedKeyUpInlet(FilteredKeyEventArgs key)
     {
-        currentSession?.OnConvertedKeyUp(key.Key);
         lastKeyboardInfo = UpdateKeyboardInfo(key.IsCtrlDown, key.IsShiftDown, key.IsAltDown, key.IsMetaDown);
+        currentSession?.OnConvertedKeyUp(key.Key);
     }
 
     public void MouseMoveInlet(MouseOnCanvasEventArgs args)
@@ -196,6 +204,8 @@ internal class ChangeExecutionController
 
     private void ProcessMove(MouseOnCanvasEventArgs args, VecD newCanvasPos)
     {
+        SyncModifiers(args.KeyModifiers);
+
         VecI newPixelPos = (VecI)newCanvasPos.Floor();
         bool pixelPosChanged = false;
         if (lastPixelPos != newPixelPos)
@@ -236,6 +246,8 @@ internal class ChangeExecutionController
 
     public void LeftMouseButtonDownInlet(MouseOnCanvasEventArgs args)
     {
+        SyncModifiers(args.KeyModifiers);
+
         //update internal state
         LeftMousePressed = true;
         RightMousePressed = args.Properties.IsRightButtonPressed;
@@ -403,5 +415,21 @@ internal class ChangeExecutionController
     private KeyboardInfo UpdateKeyboardInfo(bool ctrl, bool shift, bool alt, bool meta)
     {
         return new KeyboardInfo(ctrl, shift, alt, meta);
+    }
+
+    /// <summary>
+    /// Takes the modifier state from a pointer event, which carries what is held right now.
+    /// Key events alone are not enough to keep this honest: a key up can be swallowed before it
+    /// reaches the window - Alt handing focus to the window menu is the everyday case - and the
+    /// modifier then stays stuck down until some other key is pressed. Anything reading these
+    /// during a drag would act on a modifier the artist let go of long ago.
+    /// </summary>
+    private void SyncModifiers(KeyModifiers modifiers)
+    {
+        lastKeyboardInfo = UpdateKeyboardInfo(
+            modifiers.HasFlag(KeyModifiers.Control),
+            modifiers.HasFlag(KeyModifiers.Shift),
+            modifiers.HasFlag(KeyModifiers.Alt),
+            modifiers.HasFlag(KeyModifiers.Meta));
     }
 }
