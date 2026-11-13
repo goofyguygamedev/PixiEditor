@@ -6,6 +6,7 @@ using PixiEditor.Models.Commands.Attributes.Evaluators;
 using PixiEditor.Models.DocumentModels.UpdateableChangeExecutors.Features;
 using Drawie.Numerics;
 using PixiEditor.ViewModels.Document;
+using PixiEditor.ViewModels.Tools.Tools;
 
 namespace PixiEditor.ViewModels.SubViewModels;
 
@@ -96,6 +97,39 @@ internal class SelectionViewModel : SubViewModel<ViewModelMain>
     {
         VecI distance = new(dist[0], dist[1]);
         Owner.DocumentManagerSubViewModel.ActiveDocument?.Operations.NudgeSelectedObject(distance);
+    }
+
+    [Command.Basic("PixiEditor.Selection.NudgeSelectedObjectLeftStep", "NUDGE_SELECTED_LEFT_STEP", "NUDGE_SELECTED_LEFT_STEP",
+        Key = Key.Left, Modifiers = KeyModifiers.Shift, Parameter = new int[] { -1, 0 }, Icon = PixiPerfectIcons.ChevronLeft,
+        CanExecute = "PixiEditor.Selection.CanNudgeSelectedObject", ShortcutContexts = [typeof(ViewportWindowViewModel)])]
+    [Command.Basic("PixiEditor.Selection.NudgeSelectedObjectRightStep", "NUDGE_SELECTED_RIGHT_STEP", "NUDGE_SELECTED_RIGHT_STEP",
+        Key = Key.Right, Modifiers = KeyModifiers.Shift, Parameter = new int[] { 1, 0 }, Icon = PixiPerfectIcons.ChevronRight,
+        CanExecute = "PixiEditor.Selection.CanNudgeSelectedObject", ShortcutContexts = [typeof(ViewportWindowViewModel)])]
+    [Command.Basic("PixiEditor.Selection.NudgeSelectedObjectUpStep", "NUDGE_SELECTED_UP_STEP", "NUDGE_SELECTED_UP_STEP",
+        Key = Key.Up, Modifiers = KeyModifiers.Shift, Parameter = new int[] { 0, -1 }, Icon = PixiPerfectIcons.ChevronUp,
+        CanExecute = "PixiEditor.Selection.CanNudgeSelectedObject", ShortcutContexts = [typeof(ViewportWindowViewModel)])]
+    [Command.Basic("PixiEditor.Selection.NudgeSelectedObjectDownStep", "NUDGE_SELECTED_DOWN_STEP", "NUDGE_SELECTED_DOWN_STEP",
+        Key = Key.Down, Modifiers = KeyModifiers.Shift, Parameter = new int[] { 0, 1 }, Icon = PixiPerfectIcons.ChevronDown,
+        CanExecute = "PixiEditor.Selection.CanNudgeSelectedObject", ShortcutContexts = [typeof(ViewportWindowViewModel)])]
+    public void NudgeSelectedObjectByStep(int[] direction)
+    {
+        int step = NudgeStep;
+        VecI distance = new(direction[0] * step, direction[1] * step);
+        Owner.DocumentManagerSubViewModel.ActiveDocument?.Operations.NudgeSelectedObject(distance);
+    }
+
+    /// <summary>
+    /// The Move tool's step setting, which is where an artist would look for it. Read through the
+    /// tool rather than held here so the number in the toolbar is the number that moves things,
+    /// whichever tool is in use when the arrow keys are pressed.
+    /// </summary>
+    private int NudgeStep
+    {
+        get
+        {
+            double step = Owner.ToolsSubViewModel.GetTool<MoveToolViewModel>()?.NudgeStep ?? 16;
+            return Math.Max(1, (int)Math.Round(step));
+        }
     }
 
     [Command.Basic("PixiEditor.Selection.NewToMask", SelectionMode.New, "MASK_FROM_SELECTION", "MASK_FROM_SELECTION_DESCRIPTIVE", CanExecute = "PixiEditor.Selection.IsNotEmpty",
