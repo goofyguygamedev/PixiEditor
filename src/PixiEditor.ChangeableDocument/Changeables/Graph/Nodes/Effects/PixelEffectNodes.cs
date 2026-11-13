@@ -1,3 +1,5 @@
+﻿using Drawie.Backend.Core.ColorsImpl;
+using Drawie.Backend.Core.Surfaces;
 using Drawie.Numerics;
 using PixiEditor.ChangeableDocument.Changeables.Graph.Palettes;
 using PixiEditor.ChangeableDocument.Helpers;
@@ -226,6 +228,61 @@ public class SpinBlurNode : PixelProcessNode
         PixelEffects.SpinBlur(rgba, size.X, size.Y, Center.Value.X, Center.Value.Y, Degrees.Value);
 
     public override Node CreateCopy() => new SpinBlurNode();
+}
+
+[NodeInfo("PixelGlow")]
+public class PixelGlowNode : PixelProcessNode
+{
+    public InputProperty<Color> Color { get; }
+
+    public InputProperty<double> Radius { get; }
+
+    public InputProperty<double> Strength { get; }
+
+    public InputProperty<ShadeFalloff> Falloff { get; }
+
+    public InputProperty<int> Bands { get; }
+
+    public InputProperty<OrderedDither> Pattern { get; }
+
+    public InputProperty<bool> Inside { get; }
+
+    public PixelGlowNode()
+    {
+        Color = CreateInput("Color", "COLOR", Colors.Transparent);
+        Radius = CreateInput("Radius", "RADIUS", 6.0).WithRules(rules => rules.Min(0.0).Max(256.0));
+        Strength = CreateInput("Strength", "SHADE_STRENGTH_LABEL", 1.0).WithRules(rules => rules.Min(0.0).Max(1.0));
+        Falloff = CreateInput("Falloff", "SHADE_FALLOFF_LABEL", ShadeFalloff.Bands);
+        Bands = CreateInput("Bands", "SHADE_BANDS_LABEL", 3).WithRules(rules => rules.Min(2).Max(32));
+        Pattern = CreateInput("Pattern", "DITHER_MODE_LABEL", OrderedDither.Bayer4);
+        Inside = CreateInput("Inside", "GLOW_INSIDE_LABEL", false);
+    }
+
+    /// <summary>Screened over the artwork, so the glow only ever adds light to it.</summary>
+    protected override bool DrawsBackground => true;
+
+    protected override BlendMode ResultBlendMode => BlendMode.Screen;
+
+    protected override void AddSettingsTo(ref HashCode hash, RenderContext context)
+    {
+        hash.Add(Color.Value);
+        hash.Add(Radius.Value);
+        hash.Add(Strength.Value);
+        hash.Add(Falloff.Value);
+        hash.Add(Bands.Value);
+        hash.Add(Pattern.Value);
+        hash.Add(Inside.Value);
+    }
+
+    protected override byte[]? Process(byte[] rgba, VecI size, RenderContext context)
+    {
+        GlowStyle style = new(Radius.Value, Strength.Value, Falloff.Value, Bands.Value,
+            Pattern.Value, Inside.Value);
+
+        return PixelGlow.Render(rgba, size.X, size.Y, style, Color.Value);
+    }
+
+    public override Node CreateCopy() => new PixelGlowNode();
 }
 
 [NodeInfo("Vignette")]

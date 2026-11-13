@@ -1,0 +1,66 @@
+<dialogs:PixiEditorPopup x:Class="PixiEditor.Views.Dialogs.QuickAdjustPopup"
+                         x:ClassModifier="internal"
+                         xmlns="https://github.com/avaloniaui"
+                         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                         xmlns:ui="clr-namespace:PixiEditor.UI.Common.Localization;assembly=PixiEditor.UI.Common"
+                         xmlns:dialogs="clr-namespace:PixiEditor.Views.Dialogs"
+                         mc:Ignorable="d"
+                         d:Title="Adjust Colors" Height="300" Width="420" MinHeight="300" MinWidth="420"
+                         CanResize="False"
+                         CanMinimize="False"
+                         x:Name="popup"
+                         ui:Translator.Key="QUICK_ADJUST_TITLE">
+
+    <DockPanel Margin="20,10,20,15">
+        <TextBlock DockPanel.Dock="Top"
+                   Foreground="{DynamicResource ThemeForegroundBrush}"
+                   FontSize="12" Margin="0,0,0,10" TextWrapping="Wrap"
+                   ui:Translator.Key="{Binding ElementName=popup, Path=ScopeKey}" />
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Width="80" Margin="0,0,10,0" Click="ResetButton_Click" ui:Translator.Key="RESET" />
+            <Button Width="80" Margin="0,0,10,0" Click="CancelButton_Click" ui:Translator.Key="CANCEL" />
+            <Button Width="80" IsDefault="True" Click="OkButton_Click" ui:Translator.Key="APPLY" />
+        </StackPanel>
+
+        <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="90,*,50">
+            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource ThemeForegroundBrush}" ui:Translator.Key="QUICK_ADJUST_HUE" />
+            <Slider Grid.Row="0" Grid.Column="1" Minimum="-180" Maximum="180" TickFrequency="1"
+                    IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                    Value="{Binding ElementName=popup, Path=Hue, Mode=TwoWay}" />
+            <TextBlock Grid.Row="0" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right"
+                       Foreground="{DynamicResource ThemeForegroundBrush}"
+                       Text="{Binding ElementName=popup, Path=Hue, StringFormat=N0}" />
+
+            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource ThemeForegroundBrush}" ui:Translator.Key="SATURATION" />
+            <Slider Grid.Row="1" Grid.Column="1" Minimum="-100" Maximum="100" TickFrequency="1"
+                    IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                    Value="{Binding ElementName=popup, Path=Saturation, Mode=TwoWay}" />
+            <TextBlock Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right"
+                       Foreground="{DynamicResource ThemeForegroundBrush}"
+                       Text="{Binding ElementName=popup, Path=Saturation, StringFormat=N0}" />
+
+            <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource ThemeForegroundBrush}" ui:Translator.Key="QUICK_ADJUST_LIGHTNESS" />
+            <Slider Grid.Row="2" Grid.Column="1" Minimum="-100" Maximum="100" TickFrequency="1"
+                    IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                    Value="{Binding ElementName=popup, Path=Lightness, Mode=TwoWay}" />
+            <TextBlock Grid.Row="2" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right"
+                       Foreground="{DynamicResource ThemeForegroundBrush}"
+                       Text="{Binding ElementName=popup, Path=Lightness, StringFormat=N0}" />
+
+            <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource ThemeForegroundBrush}" ui:Translator.Key="QUICK_ADJUST_CONTRAST" />
+            <Slider Grid.Row="3" Grid.Column="1" Minimum="-100" Maximum="100" TickFrequency="1"
+                    IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                    Value="{Binding ElementName=popup, Path=Contrast, Mode=TwoWay}" />
+            <TextBlock Grid.Row="3" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right"
+                       Foreground="{DynamicResource ThemeForegroundBrush}"
+                       Text="{Binding ElementName=popup, Path=Contrast, StringFormat=N0}" />
+        </Grid>
+    </DockPanel>
+</dialogs:PixiEditorPopup>

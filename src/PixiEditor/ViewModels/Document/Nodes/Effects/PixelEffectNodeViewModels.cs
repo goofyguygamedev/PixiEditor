@@ -1,4 +1,4 @@
-using PixiEditor.ChangeableDocument.Changeables.Graph.Nodes.Effects;
+﻿using PixiEditor.ChangeableDocument.Changeables.Graph.Nodes.Effects;
 using PixiEditor.ViewModels.Nodes;
 
 namespace PixiEditor.ViewModels.Document.Nodes.Effects;
@@ -23,6 +23,9 @@ internal class ZoomBlurNodeViewModel : NodeViewModel<ZoomBlurNode>;
 
 [NodeViewModel("SPIN_BLUR_NODE", "EFFECTS", PixiPerfectIcons.Blur)]
 internal class SpinBlurNodeViewModel : NodeViewModel<SpinBlurNode>;
+
+[NodeViewModel("PIXEL_GLOW_NODE", "EFFECTS", PixiPerfectIcons.Sun)]
+internal class PixelGlowNodeViewModel : NodeViewModel<PixelGlowNode>;
 
 [NodeViewModel("VIGNETTE_NODE", "EFFECTS", PixiPerfectIcons.Circle)]
 internal class VignetteNodeViewModel : NodeViewModel<VignetteNode>;

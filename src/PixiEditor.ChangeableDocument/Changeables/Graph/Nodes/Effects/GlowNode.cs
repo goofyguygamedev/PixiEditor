@@ -11,9 +11,17 @@ namespace PixiEditor.ChangeableDocument.Changeables.Graph.Nodes.Effects;
 /// Adds a glow around the content, in the content's own colours unless a colour is set.
 /// </summary>
 /// <remarks>
+/// <para>
 /// A glow is a blurred copy of the source screened back over it. That differs from
 /// <see cref="FilterNodes.ShadowNode"/> with a zero offset, which draws the blur *behind* the
 /// content and so reads as a dark halo rather than emitted light.
+/// </para>
+/// <para>
+/// Its falloff is whatever the Gaussian gives and cannot be banded or dithered: this is a filter,
+/// built out of image filters on the GPU, and banding or dithering needs every pixel to know how
+/// far from the edge it is and where it sits in the pattern. <see cref="PixelGlowNode"/> is the one
+/// that does that. Both exist because this one is a filter and that one is not, so they plug into
+/// different places and swapping one for the other would disconnect it in artwork already saved.
 /// </remarks>
 [NodeInfo("Glow")]
 public class GlowNode : FilterNode
