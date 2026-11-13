@@ -14,7 +14,7 @@ internal class ZoomToolViewModel : ToolViewModel
         set => SetProperty(ref zoomOutOnClick, value);
     }
 
-    private string defaultActionDisplay = new LocalizedString("ZOOM_TOOL_ACTION_DISPLAY_DEFAULT");
+    private LocalizedString defaultActionDisplay = new LocalizedString("ZOOM_TOOL_ACTION_DISPLAY_DEFAULT");
 
     public override string ToolNameLocalizationKey => "ZOOM_TOOL";
     public override Type[]? SupportedLayerTypes { get; } = null;

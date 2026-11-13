@@ -34,7 +34,10 @@ internal class TextToolViewModel : ToolViewModel, ITextToolHandler
     public TextToolViewModel()
     {
         Toolbar = ToolbarFactory.Create<TextToolViewModel, TextToolbar>(this);
+        ActionDisplay = DefaultActionDisplay;
     }
+
+    private static LocalizedString DefaultActionDisplay => new("TEXT_TOOL_ACTION_DISPLAY");
 
     public override void UseTool(VecD pos)
     {
@@ -46,7 +49,7 @@ internal class TextToolViewModel : ToolViewModel, ITextToolHandler
         if (!restoring)
         {
             ViewModelMain.Current?.DocumentManagerSubViewModel.ActiveDocument?.Tools.UseTextTool();
-            ActionDisplay = new LocalizedString("TEXT_TOOL_ACTION_DISPLAY");
+            ActionDisplay = DefaultActionDisplay;
         }
     }
 

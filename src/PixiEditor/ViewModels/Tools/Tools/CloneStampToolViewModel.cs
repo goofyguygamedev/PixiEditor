@@ -27,7 +27,7 @@ internal class CloneStampToolViewModel : BrushBasedToolViewModel, IPixelInkToolH
 
     public CloneStampToolViewModel()
     {
-        ActionDisplay = new LocalizedString("CLONE_STAMP_TOOL_ACTION_DISPLAY");
+        UpdateActionDisplay();
         Toolbar.GetSetting(nameof(BrushToolbar.Brush))!.IsExposed = false;
         Toolbar.GetSetting(nameof(BrushToolbar.StabilizationMode))!.IsExposed = false;
     }
@@ -37,6 +37,22 @@ internal class CloneStampToolViewModel : BrushBasedToolViewModel, IPixelInkToolH
     public override void KeyChanged(bool ctrlIsDown, bool shiftIsDown, bool altIsDown, Key argsKey)
     {
         this.altIsDown = altIsDown;
+    }
+
+    protected override void OnSelected(bool restoring)
+    {
+        UpdateActionDisplay();
+    }
+
+    /// <summary>
+    /// Says which of the tool's two steps the artist is on. Painting before a source is picked does
+    /// nothing at all, so the bar has to say that rather than leave it looking broken.
+    /// </summary>
+    private void UpdateActionDisplay()
+    {
+        ActionDisplay = new LocalizedString(source is null
+            ? "CLONE_STAMP_TOOL_ACTION_DISPLAY_NO_SOURCE"
+            : "CLONE_STAMP_TOOL_ACTION_DISPLAY_READY");
     }
 
     /// <summary>
@@ -58,6 +74,7 @@ internal class CloneStampToolViewModel : BrushBasedToolViewModel, IPixelInkToolH
         {
             source = (VecI)pos.Floor();
             cloneOffset = null;
+            UpdateActionDisplay();
             return;
         }
 

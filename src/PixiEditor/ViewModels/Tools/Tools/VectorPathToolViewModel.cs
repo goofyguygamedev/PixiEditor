@@ -73,6 +73,7 @@ internal class VectorPathToolViewModel : ShapeTool, IVectorPathToolHandler
         actionDisplayAlt = new LocalizedString("PATH_TOOL_ACTION_DISPLAY_ALT");
         actionDisplayShift = new LocalizedString("PATH_TOOL_ACTION_DISPLAY_SHIFT");
         actionDisplayCtrlShift = new LocalizedString("PATH_TOOL_ACTION_DISPLAY_CTRL_SHIFT");
+        ActionDisplay = actionDisplayDefault;
     }
 
     public override void UseTool(VecD pos)

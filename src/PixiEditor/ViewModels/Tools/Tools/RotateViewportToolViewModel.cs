@@ -18,6 +18,7 @@ internal class RotateViewportToolViewModel : ToolViewModel
 
     public RotateViewportToolViewModel()
     {
+        ActionDisplay = new LocalizedString("ROTATE_VIEWPORT_ACTION_DISPLAY");
     }
 
     protected override void OnSelected(bool restoring)

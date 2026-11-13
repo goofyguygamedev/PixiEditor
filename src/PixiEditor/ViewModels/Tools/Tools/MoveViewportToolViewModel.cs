@@ -20,14 +20,16 @@ internal class MoveViewportToolViewModel : ToolViewModel
     public MoveViewportToolViewModel()
     {
         Cursor = new Cursor(StandardCursorType.SizeAll);
+        ActionDisplay = new LocalizedString("MOVE_VIEWPORT_ACTION_DISPLAY");
     }
 
     protected override void OnSelected(bool restoring)
     {
+        ActionDisplay = new LocalizedString("MOVE_VIEWPORT_ACTION_DISPLAY");
+
         if (ViewModelMain.Current.DocumentManagerSubViewModel.ActiveDocument == null)
             return;
 
-        ActionDisplay = new LocalizedString("MOVE_VIEWPORT_ACTION_DISPLAY");
         ViewModelMain.Current.DocumentManagerSubViewModel.ActiveDocument.SuppressAllOverlayEvents(ToolName);
         ViewModelMain.Current.DocumentManagerSubViewModel.ActiveDocument.TransformViewModel.TransformShowStateChanged += TransformViewModel_TransformActivated;
     }
