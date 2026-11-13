@@ -27,13 +27,22 @@ internal class FloodFillToolViewModel : ToolViewModel, IFloodFillToolHandler
 
     public bool ConsiderAllLayers { get; private set; }
 
-    [Settings.Percent("TOLERANCE_LABEL", ExposedByDefault = false)]
+    [Settings.Percent("TOLERANCE_LABEL", ExposedByDefault = true)]
     public float Tolerance => GetValue<float>();
-    [Settings.Enum("FLOOD_FILL_MODE_LABEL", FloodFillMode.Overlay, ExposedByDefault = false)]
+
+    [Settings.Enum("FLOOD_FILL_MODE_LABEL", FloodFillMode.Overlay, ExposedByDefault = true)]
     public FloodFillMode FillMode => GetValue<FloodFillMode>();
 
     [Settings.Bool("CONTIGUOUS_LABEL", true, ExposedByDefault = true)]
     public bool Contiguous => GetValue<bool>();
+
+    private bool altOverridesContiguous;
+
+    /// <summary>Alt forces a non-contiguous fill, i.e. all of that colour in the layer.</summary>
+    public bool ResultingContiguous => !altOverridesContiguous && Contiguous;
+
+    // Keep Alt instead of letting it transiently switch to the color picker.
+    public override bool HandlesAltModifier => true;
 
     public override string DefaultIcon => PixiPerfectIcons.Bucket;
 
@@ -47,14 +56,21 @@ internal class FloodFillToolViewModel : ToolViewModel, IFloodFillToolHandler
 
     public override void KeyChanged(bool ctrlIsDown, bool shiftIsDown, bool altIsDown, Key argsKey)
     {
-        if (ctrlIsDown)
+        // Alt and Ctrl are independent: one picks what counts as the same colour, the other picks
+        // which layers are looked at.
+        altOverridesContiguous = altIsDown;
+        ConsiderAllLayers = ctrlIsDown;
+
+        if (altIsDown)
         {
-            ConsiderAllLayers = true;
+            ActionDisplay = "FLOOD_FILL_TOOL_ACTION_DISPLAY_ALT";
+        }
+        else if (ctrlIsDown)
+        {
             ActionDisplay = "FLOOD_FILL_TOOL_ACTION_DISPLAY_CTRL";
         }
         else
         {
-            ConsiderAllLayers = false;
             ActionDisplay = defaultActionDisplay;
         }
     }

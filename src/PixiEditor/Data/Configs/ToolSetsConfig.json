@@ -135,8 +135,10 @@
         {
           "ToolName": "FloodFill",
           "Settings": {
-            "Tolerance": 0,
-            "FillMode": "Overlay"
+            "DefaultTolerance": 0,
+            "DefaultFillMode": "Overlay",
+            "ExposeTolerance": true,
+            "ExposeFillMode": true
           }
         },
         {
