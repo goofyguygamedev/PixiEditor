@@ -22,6 +22,17 @@ internal class DocumentToolsModule
     public void UseSymmetry(SymmetryAxisDirection dir) =>
         Internals.ChangeController.TryStartExecutor(new SymmetryExecutor(dir));
 
+    /// <summary>
+    /// Puts the transform box around the selection so its handles can resize it. Forced past a
+    /// tool-linked executor, because the select tool that asks for this is usually the one holding
+    /// the session that just finished drawing the selection.
+    /// </summary>
+    public void UseTransformSelection()
+    {
+        bool force = Internals.ChangeController.GetCurrentExecutorType() == ExecutorType.ToolLinked;
+        Internals.ChangeController.TryStartExecutor(new TransformSelectionExecutor(), force);
+    }
+
     public void UseOpacitySlider() => Internals.ChangeController.TryStartExecutor<StructureMemberOpacityExecutor>();
 
 

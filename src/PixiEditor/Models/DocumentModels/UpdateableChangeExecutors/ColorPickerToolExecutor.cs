@@ -3,6 +3,7 @@ using PixiEditor.Models.Handlers.Tools;
 using PixiEditor.Models.Tools;
 using Drawie.Numerics;
 using PixiEditor.Models.Controllers.InputDevice;
+using PixiEditor.Extensions.CommonApi.Palettes;
 
 namespace PixiEditor.Models.DocumentModels.UpdateableChangeExecutors;
 
@@ -15,11 +16,12 @@ internal class ColorPickerToolExecutor : UpdateableChangeExecutor
     private IColorsHandler? colorsViewModel;
     private IWindowHandler? windowHandler;
     private Guid? sceneTextureKey;
+    private IColorPickerHandler? tool;
 
     public override ExecutionState Start()
     {
         colorsViewModel = GetHandler<IColorsHandler>();
-        IColorPickerHandler? tool = GetHandler<IColorPickerHandler>();
+        tool = GetHandler<IColorPickerHandler>();
 
         if (colorsViewModel is null || tool is null)
             return ExecutionState.Error;
@@ -60,7 +62,37 @@ internal class ColorPickerToolExecutor : UpdateableChangeExecutor
 
     public override void OnLeftMouseButtonUp(VecD argsPositionOnCanvas)
     {
+        if (ShouldAddToPalette())
+        {
+            AddPickedColorToPalette();
+        }
+
         onEnded?.Invoke(this);
+    }
+
+    /// <summary>
+    /// Whether this click should also put the color in the document's palette.
+    /// </summary>
+    /// <remarks>
+    /// Only when the color picker is the tool the artist chose. Alt is also what transiently
+    /// borrows the picker from another tool, and alt-picking a color while drawing should not
+    /// quietly grow the palette on every click.
+    /// </remarks>
+    private bool ShouldAddToPalette() =>
+        controller!.AltPressed && tool is { IsTransient: false } && document is not null;
+
+    private void AddPickedColorToPalette()
+    {
+        PaletteColor picked = new(colorsViewModel!.PrimaryColor.R, colorsViewModel.PrimaryColor.G,
+            colorsViewModel.PrimaryColor.B);
+
+        // A palette is a set, and a duplicate swatch is only something to tidy up later.
+        if (document!.Palette.Contains(picked))
+        {
+            return;
+        }
+
+        document.Palette.Add(picked);
     }
 
     public override void ForceStop()

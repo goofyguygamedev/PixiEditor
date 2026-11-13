@@ -43,6 +43,7 @@ internal sealed class LassoToolExecutor : UpdateableChangeExecutor
     {
         internals!.ActionAccumulator.AddFinishedActions(new EndSelectLasso_Action());
         onEnded!(this);
+        TransformSelectionExecutor.ShowFor(internals);
     }
 
     public override void ForceStop()

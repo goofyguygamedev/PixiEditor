@@ -244,6 +244,8 @@ internal class ChangeExecutionController
 
     public void SymmetryDragEndedInlet(SymmetryAxisDirection dir) => currentSession?.OnSymmetryDragEnded(dir);
 
+    public void SelectionPathChangedInlet() => currentSession?.OnSelectionPathChanged();
+
     public void LeftMouseButtonDownInlet(MouseOnCanvasEventArgs args)
     {
         SyncModifiers(args.KeyModifiers);

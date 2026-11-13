@@ -64,6 +64,7 @@ internal class SelectToolExecutor : UpdateableChangeExecutor
         IAction action = CreateEndAction(selectShape);
         internals!.ActionAccumulator.AddFinishedActions(action);
         onEnded!(this);
+        TransformSelectionExecutor.ShowFor(internals);
     }
 
     public override void ForceStop()

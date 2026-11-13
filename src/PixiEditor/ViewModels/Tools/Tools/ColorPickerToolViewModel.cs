@@ -18,6 +18,8 @@ internal class ColorPickerToolViewModel : ToolViewModel, IColorPickerHandler
 
     private readonly string defaultActionDisplay = "COLOR_PICKER_ACTION_DISPLAY_CANVAS_ONLY";
 
+    private bool altIsDown;
+
     public override Type LayerTypeToCreateOnEmptyUse { get; } = null;
     public override bool HideHighlight => true;
 
@@ -124,6 +126,15 @@ internal class ColorPickerToolViewModel : ToolViewModel, IColorPickerHandler
             return;
         }
 
+        // Said first, because it is what the held key is about to do. Not while the picker is only
+        // borrowed with Alt from another tool: there Alt is what fetched the picker, and the click
+        // is an ordinary pick.
+        if (altIsDown && !IsTransient)
+        {
+            ActionDisplay = "COLOR_PICKER_ACTION_DISPLAY_ADD_TO_PALETTE";
+            return;
+        }
+
         var documentBounds = new RectD(default, document.SizeBindable);
         var referenceLayer = document.ReferenceLayerViewModel;
 
@@ -164,8 +175,11 @@ internal class ColorPickerToolViewModel : ToolViewModel, IColorPickerHandler
         ViewModelMain.Current?.DocumentManagerSubViewModel.ActiveDocument?.Tools.UseColorPickerTool();
     }
 
-    public override void KeyChanged(bool ctrlIsDown, bool shiftIsDown, bool altIsDown, Key argsKey) =>
+    public override void KeyChanged(bool ctrlIsDown, bool shiftIsDown, bool altIsDown, Key argsKey)
+    {
+        this.altIsDown = altIsDown;
         UpdateActionDisplay(ctrlIsDown, shiftIsDown);
+    }
 
     protected override void OnSelected(bool restoring)
     {

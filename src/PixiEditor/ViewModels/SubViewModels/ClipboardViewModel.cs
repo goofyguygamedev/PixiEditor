@@ -91,6 +91,19 @@ internal class ClipboardViewModel : SubViewModel<ViewModelMain>
         });
     }
 
+    /// <summary>
+    /// The same thing as File > Open file from clipboard, offered under Edit beside the other
+    /// paste commands, which is where someone with an image on the clipboard looks for it.
+    /// </summary>
+    [Command.Basic("PixiEditor.Clipboard.PasteAsNewImage", "PASTE_AS_NEW_IMAGE",
+        "PASTE_AS_NEW_IMAGE_DESCRIPTIVE", CanExecute = "PixiEditor.Clipboard.CanPasteFromClipboard",
+        MenuItemPath = "EDIT/PASTE_AS_NEW_IMAGE", MenuItemOrder = 5,
+        Icon = PixiPerfectIcons.PasteAsNewLayer, AnalyticsTrack = true)]
+    public void PasteAsNewImage()
+    {
+        Owner.FileSubViewModel.OpenFromClipboard();
+    }
+
     [Command.Basic("PixiEditor.Clipboard.PasteReferenceLayer", "PASTE_REFERENCE_LAYER",
         "PASTE_REFERENCE_LAYER_DESCRIPTIVE", CanExecute = "PixiEditor.Clipboard.CanPaste",
         Icon = PixiPerfectIcons.PasteReferenceLayer, AnalyticsTrack = true)]

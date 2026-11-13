@@ -86,4 +86,33 @@ internal class MagicWandToolViewModel : ToolViewModel, IMagicWandToolHandler
             KeyModifierSelectionMode = SelectionMode.New;
         }
     }
+
+    /// <summary>
+    /// Brings up the selection's transform box, so an existing selection can be resized by its
+    /// handles as soon as a select tool is picked up.
+    /// </summary>
+    protected override void OnSelected(bool restoring)
+    {
+        ShowSelectionTransformBox();
+    }
+
+    // An undo stops the running executor, which takes the box with it. Putting it back here means
+    // stepping through history leaves the handles on whatever selection that step restored.
+    public override void OnPostUndoInlet() => ShowSelectionTransformBox();
+
+    public override void OnPostRedoInlet() => ShowSelectionTransformBox();
+
+    private static void ShowSelectionTransformBox() =>
+        ViewModelMain.Current?.DocumentManagerSubViewModel.ActiveDocument?.Tools.UseTransformSelection();
+
+    protected override void OnDeselecting(bool transient)
+    {
+        base.OnDeselecting(transient);
+
+        if (!transient)
+        {
+            ViewModelMain.Current?.DocumentManagerSubViewModel.ActiveDocument?.Operations
+                .TryStopToolLinkedExecutor();
+        }
+    }
 }

@@ -1,4 +1,4 @@
-using Avalonia.Input;
+﻿using Avalonia.Input;
 using Drawie.Numerics;
 using PixiEditor.ChangeableDocument.Actions.Generated;
 using PixiEditor.ChangeableDocument.Actions.Undo;
@@ -128,6 +128,7 @@ internal class MagicWandToolExecutor : UpdateableChangeExecutor, IMidChangeUndoa
         finished = true;
         ForceStop();
         onEnded!(this);
+        TransformSelectionExecutor.ShowFor(internals!);
     }
 
     private void Send()

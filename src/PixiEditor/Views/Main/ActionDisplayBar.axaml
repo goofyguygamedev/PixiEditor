@@ -1,4 +1,4 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -45,6 +45,11 @@
                 Orientation="Horizontal"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Center">
+                <TextBlock
+                    Text="{ReflectionBinding DataContext.DocumentManagerSubViewModel.ActiveDocument.SelectionSizeString, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}}"
+                    Foreground="{DynamicResource ThemeForegroundSecondaryBrush}"
+                    Margin="0,0,12,0"
+                    FontSize="16" />
                 <TextBlock
                     Text="{ReflectionBinding DataContext.DocumentManagerSubViewModel.ActiveDocument.CoordinatesString, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=UserControl}}"
                     Foreground="{DynamicResource ThemeForegroundBrush}"

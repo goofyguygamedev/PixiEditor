@@ -57,6 +57,7 @@ internal abstract class UpdateableChangeExecutor
     public virtual void OnSymmetryDragStarted(SymmetryAxisDirection dir) { }
     public virtual void OnSymmetryDragged(SymmetryAxisDragInfo info) { }
     public virtual void OnSymmetryDragEnded(SymmetryAxisDirection dir) { }
+    public virtual void OnSelectionPathChanged() { }
     public virtual void OnConvertedKeyDown(Key key) { }
     public virtual void OnConvertedKeyUp(Key key) { }
     public virtual void OnSettingsChanged(string name, object value) { }

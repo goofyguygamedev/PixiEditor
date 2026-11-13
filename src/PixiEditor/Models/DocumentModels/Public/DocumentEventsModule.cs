@@ -54,5 +54,7 @@ internal class DocumentEventsModule
     public void OnSymmetryDragged(SymmetryAxisDragInfo info) => Internals.ChangeController.SymmetryDraggedInlet(info);
     public void OnSymmetryDragEnded(SymmetryAxisDirection dir) => Internals.ChangeController.SymmetryDragEndedInlet(dir);
 
+    public void OnSelectionPathChanged() => Internals.ChangeController.SelectionPathChangedInlet();
+
     public void QuickToolSwitchInlet() => Internals.ChangeController.QuickToolSwitchInlet();
 }

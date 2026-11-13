@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Globalization;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using Avalonia.Threading;
 using AvaloniaEdit.Utils;
@@ -205,6 +206,26 @@ internal partial class DocumentViewModel : PixiObservableObject, IDocument
 
     private VectorPath selectionPath = new VectorPath();
     public VectorPath SelectionPathBindable => selectionPath;
+
+    /// <summary>
+    /// The selection's size in pixels, or an empty string when nothing is selected. Shown beside
+    /// the cursor position, which is where the eye looks for a number it wants to read off exactly.
+    /// </summary>
+    public string SelectionSizeString
+    {
+        get
+        {
+            if (selectionPath.IsEmpty)
+            {
+                return "";
+            }
+
+            RectI bounds = (RectI)selectionPath.TightBounds.RoundOutwards();
+            return bounds is { Width: > 0, Height: > 0 }
+                ? string.Format(CultureInfo.CurrentCulture, "{0} x {1}", bounds.Width, bounds.Height)
+                : "";
+        }
+    }
     public ObservableCollection<PaletteColor> Swatches { get; set; } = new();
     public Guid Id => Internals.Tracker.Document.DocumentId;
 
@@ -1319,6 +1340,8 @@ internal partial class DocumentViewModel : PixiObservableObject, IDocument
         (VectorPath? toDispose, this.selectionPath) = (this.selectionPath, vectorPath);
         toDispose.Dispose();
         OnPropertyChanged(nameof(SelectionPathBindable));
+        OnPropertyChanged(nameof(SelectionSizeString));
+        EventInlet.OnSelectionPathChanged();
     }
 
     public void AddSoftSelectedMember(IStructureMemberHandler member)
