@@ -11,6 +11,8 @@ using PixiEditor.OperatingSystem;
 using PixiEditor.Helpers;
 using PixiEditor.ViewModels.Document;
 
+using Drawie.Backend.Core.Surfaces.ImageData;
+
 namespace PixiEditor.ViewModels.SubViewModels;
 
 /// <summary>
@@ -72,6 +74,9 @@ internal class TimelapseViewModel : SubViewModel<ViewModelMain>
 
     public static double TargetDurationSeconds =>
         PixiEditorSettings.Timelapse.TargetDurationSeconds.Value;
+
+    public static double LastFrameDurationSeconds =>
+        PixiEditorSettings.Timelapse.LastFrameDurationSeconds.Value;
 
     public TimelapseViewModel(ViewModelMain owner, DocumentManagerViewModel documentManager)
         : base(owner)
@@ -189,8 +194,15 @@ internal class TimelapseViewModel : SubViewModel<ViewModelMain>
             // Capture the current state first so the replay ends on what is actually on screen.
             recorder.CaptureIfChanged();
 
+            // A whole window recording ends on a shot of the editor, which is not what anyone
+            // wants to look at last. This renders the picture on its own for the closing frame.
+            using Image? artOnly = PixiEditorSettings.Timelapse.ArtOnlyLastFrame.Value
+                ? TimelapseRecorder.TryRenderArtworkFrame(document)
+                : null;
+
             string? outputPath = await recorder.ExportAsync(
-                session, targetDurationSeconds: TargetDurationSeconds);
+                session, targetDurationSeconds: TargetDurationSeconds,
+                lastFrameSeconds: LastFrameDurationSeconds, artOnlyFinalFrame: artOnly);
 
             if (outputPath is null)
             {

@@ -434,6 +434,22 @@ internal class TimelapseRecorder
         }
     }
 
+    /// <summary>
+    /// Renders the artwork on its own, for ending a whole window recording on the picture.
+    /// Returns null when the renderer is busy, in which case the clip just ends as it always did.
+    /// </summary>
+    public static Image? TryRenderArtworkFrame(DocumentViewModel document)
+    {
+        var maybeSurface = document.TryRenderWholeImage(
+            document.AnimationDataViewModel.ActiveFrameTime, GetCaptureSize(document.SizeBindable));
+
+        if (maybeSurface.IsT0)
+            return null;
+
+        using Surface surface = maybeSurface.AsT1;
+        return surface.DrawingSurface.Snapshot();
+    }
+
     private static bool TryCaptureArtwork(DocumentViewModel document, out byte[] encoded, out VecI size)
     {
         encoded = [];
@@ -454,10 +470,18 @@ internal class TimelapseRecorder
     /// Captures the editor window itself - panels, toolbars, the canvas at its current zoom.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Prefers a screen read, because that is the only way the canvas appears at all: the canvas is
     /// a GPU surface handed to the compositor, so Avalonia's software re-render of the visual tree
     /// produces the window with its panels and an empty hole where the artwork should be. The
     /// re-render is kept only as a fallback for platforms with no screen capture implemented.
+    /// </para>
+    /// <para>
+    /// A screen read would also pick up whatever is in front of the window, so no frame is taken at
+    /// all while another program is the active one. Nothing is lost by waiting: the artwork cannot
+    /// change while the artist is somewhere else, and the change that is pending stays pending, so
+    /// the next sweep records it as soon as they come back.
+    /// </para>
     /// </remarks>
     private static bool TryCaptureWindow(out byte[] encoded, out VecI size)
     {
@@ -470,6 +494,11 @@ internal class TimelapseRecorder
 
         if (System.OperatingSystem.IsWindows())
         {
+            // Before the fallback, not after: re-rendering the visual tree would quietly write a
+            // frame of empty canvas rather than skipping one.
+            if (!WindowScreenCapture.IsOwnAppInFront())
+                return false;
+
             IntPtr handle = window.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
             if (WindowScreenCapture.TryCapture(handle, MaxCaptureLongEdge, out encoded, out size))
                 return true;
@@ -608,6 +637,8 @@ internal class TimelapseRecorder
         TimelapseSession session,
         string outputFormat = "mp4",
         double? targetDurationSeconds = 30,
+        double lastFrameSeconds = 1,
+        Image? artOnlyFinalFrame = null,
         Action<double>? progressCallback = null,
         CancellationToken cancellationToken = default)
     {
@@ -648,7 +679,8 @@ internal class TimelapseRecorder
 
         VecI sourceSize = ToEvenSize(PickCommonFrameSize(frames, session.FrameSize));
 
-        List<Image> composited = CompositeOntoBackground(frames, sourceSize, Options.Background);
+        List<Image> composited = CompositeOntoBackground(frames, sourceSize, Options.Background,
+            HoldFrameCount(lastFrameSeconds, fps, frames.Count), artOnlyFinalFrame);
         foreach (Image frame in frames)
             frame.Dispose();
 
@@ -671,6 +703,26 @@ internal class TimelapseRecorder
             composited, outputPath, cancellationToken, progressCallback);
 
         return success ? outputPath : null;
+    }
+
+    /// <summary>
+    /// How many extra copies of the last frame to encode so that the replay rests on the finished
+    /// picture for <paramref name="seconds"/> instead of cutting away the moment the last stroke
+    /// lands.
+    /// </summary>
+    /// <remarks>
+    /// One less than the seconds are worth, because the frame is already there once. Never enough
+    /// to push the clip past the frame ceiling the rest of the export works to.
+    /// </remarks>
+    public static int HoldFrameCount(double seconds, int fps, int frameCount)
+    {
+        if (seconds <= 0 || fps <= 0)
+        {
+            return 0;
+        }
+
+        int wanted = (int)Math.Round(seconds * fps) - 1;
+        return Math.Clamp(wanted, 0, Math.Max(0, MaxExportFrames - frameCount));
     }
 
     /// <summary>
@@ -732,17 +784,34 @@ internal class TimelapseRecorder
     /// the background, so it is letterboxed rather than stretched into a shape it never had.
     /// </para>
     /// </remarks>
+    /// <param name="extraLastFrames">
+    /// Copies of the final frame to add on the end, which hold the finished picture on screen.
+    /// Composited again rather than repeating one image, because the renderer disposes what it is
+    /// given and the same image handed to it twice would be disposed twice.
+    /// </param>
+    /// <param name="finalFrame">
+    /// Shown in place of the last recorded frame and every held copy of it. Used to end a whole
+    /// window recording on the artwork by itself, so the clip finishes on the picture rather than
+    /// on a shot of the editor around it. It is scaled and centred like any other frame, so it
+    /// does not have to match their size.
+    /// </param>
     private static List<Image> CompositeOntoBackground(
-        List<Image> frames, VecI size, TimelapseBackground background)
+        List<Image> frames, VecI size, TimelapseBackground background, int extraLastFrames = 0,
+        Image? finalFrame = null)
     {
-        List<Image> result = new(frames.Count);
+        int total = frames.Count + Math.Max(0, extraLastFrames);
+        List<Image> result = new(total);
 
         DrawingBackendApi.Current.RenderingDispatcher.Invoke(() =>
         {
             using Paint checkerPaint = new() { Color = CheckerColor };
 
-            foreach (Image frame in frames)
+            for (int i = 0; i < total; i++)
             {
+                Image frame = finalFrame is not null && i >= frames.Count - 1
+                    ? finalFrame
+                    : frames[Math.Min(i, frames.Count - 1)];
+
                 using Surface surface = Surface.ForDisplay(size);
                 DrawBackground(surface, size, background, checkerPaint);
 

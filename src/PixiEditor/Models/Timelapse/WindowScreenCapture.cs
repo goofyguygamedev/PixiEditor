@@ -20,8 +20,10 @@ namespace PixiEditor.Models.Timelapse;
 /// get what the artist is actually looking at.
 /// </para>
 /// <para>
-/// The trade-off is that this is a screen read, not a window read: anything overlapping the window
-/// lands in the frame, and a minimized window cannot be captured at all.
+/// The trade-off is that this is a screen read, not a window read, so whatever sits in front of the
+/// window would land in the frame. <see cref="IsOwnAppInFront"/> is how the recorder keeps other
+/// programs out of a recording: it only reads the screen while this application is the active one.
+/// A minimized window cannot be captured at all.
 /// </para>
 /// </remarks>
 [SupportedOSPlatform("windows")]
@@ -81,6 +83,33 @@ internal static class WindowScreenCapture
 
     [DllImport("user32.dll")]
     private static extern bool IsIconic(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    /// <summary>
+    /// True when the window in front belongs to this application, so a screen read can only pick up
+    /// our own windows.
+    /// </summary>
+    /// <remarks>
+    /// The whole application rather than one window, so that a dialog, a floating panel or a
+    /// detached dock of our own still counts as being in front. Anything else in front means some
+    /// other program's content is over ours, and a recording must not swallow that.
+    /// </remarks>
+    public static bool IsOwnAppInFront()
+    {
+        IntPtr foreground = GetForegroundWindow();
+        if (foreground == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        GetWindowThreadProcessId(foreground, out uint processId);
+        return processId == (uint)Environment.ProcessId;
+    }
 
     [DllImport("gdi32.dll")]
     private static extern IntPtr CreateCompatibleDC(IntPtr hdc);

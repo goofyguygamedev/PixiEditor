@@ -174,5 +174,22 @@ public static class PixiEditorSettings
         /// <summary>Roughly how long an exported replay should run.</summary>
         public static SyncedSetting<double> TargetDurationSeconds { get; } =
             SyncedSetting.NonOwned(PixiEditor, 30d);
+
+        /// <summary>
+        /// How long a replay holds on its last frame, in seconds, so it does not cut away from the
+        /// finished picture the moment the last stroke lands.
+        /// </summary>
+        public static SyncedSetting<double> LastFrameDurationSeconds { get; } =
+            SyncedSetting.NonOwned(PixiEditor, 1d);
+
+        /// <summary>
+        /// Ends the replay on the artwork by itself, even when the recording is of the whole
+        /// window. The clip finishes on the picture rather than on a shot of the editor.
+        /// </summary>
+        public static SyncedSetting<bool> ArtOnlyLastFrame { get; } =
+            SyncedSetting.NonOwned(PixiEditor, true);
+
+        /// <summary>Remembered gap between sprites in a generated atlas.</summary>
+        public static SyncedSetting<int> SpriteAtlasSpacing { get; } = SyncedSetting.NonOwned(PixiEditor, 2);
     }
 }

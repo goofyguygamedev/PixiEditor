@@ -1,4 +1,4 @@
-using PixiEditor.Extensions.CommonApi.UserPreferences.Settings.PixiEditor;
+﻿using PixiEditor.Extensions.CommonApi.UserPreferences.Settings.PixiEditor;
 
 namespace PixiEditor.ViewModels.UserPreferences.Settings;
 
@@ -61,6 +61,21 @@ internal class TimelapseSettings : SettingsGroup
         get => PixiEditorSettings.Timelapse.TargetDurationSeconds.Value;
         set => RaiseAndUpdatePreference(
             PixiEditorSettings.Timelapse.TargetDurationSeconds, Math.Clamp(value, 1, 600));
+    }
+
+    /// <summary>Seconds the replay holds on the finished picture at the end. Zero holds nothing.</summary>
+    public double LastFrameDurationSeconds
+    {
+        get => PixiEditorSettings.Timelapse.LastFrameDurationSeconds.Value;
+        set => RaiseAndUpdatePreference(
+            PixiEditorSettings.Timelapse.LastFrameDurationSeconds, Math.Clamp(value, 0, 30));
+    }
+
+    /// <summary>Whether the clip ends on the artwork alone, even when recording the whole window.</summary>
+    public bool ArtOnlyLastFrame
+    {
+        get => PixiEditorSettings.Timelapse.ArtOnlyLastFrame.Value;
+        set => RaiseAndUpdatePreference(PixiEditorSettings.Timelapse.ArtOnlyLastFrame, value);
     }
 }
 

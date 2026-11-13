@@ -288,6 +288,18 @@
                                 <Label ui:Translator.Key="SECOND_UNIVERSAL" />
                             </StackPanel>
 
+                            <StackPanel Classes="leftOffset" Orientation="Horizontal">
+                                <Label ui:Translator.Key="TIMELAPSE_LAST_FRAME_DURATION" />
+                                <controls:NumberInput Min="0" Max="30" FontSize="12" HorizontalAlignment="Left"
+                                                      Value="{Binding SettingsSubViewModel.Timelapse.LastFrameDurationSeconds, Mode=TwoWay}"
+                                                      Width="55" />
+                                <Label ui:Translator.Key="SECOND_UNIVERSAL" />
+                            </StackPanel>
+
+                            <CheckBox Classes="leftOffset"
+                                      ui:Translator.Key="TIMELAPSE_ART_ONLY_LAST_FRAME"
+                                      IsChecked="{Binding SettingsSubViewModel.Timelapse.ArtOnlyLastFrame, Mode=TwoWay}" />
+
                             <TextBlock ui:Translator.Key="DEBUG" Classes="h5" />
                             <CheckBox Classes="leftOffset"
                                       IsChecked="{Binding SettingsSubViewModel.General.IsDebugModeEnabled}"
