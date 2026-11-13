@@ -9,7 +9,7 @@ using PixiEditor.ViewModels.Tools.ToolSettings.Toolbars;
 
 namespace PixiEditor.ViewModels.Tools.Tools;
 
-[Command.Tool(Key = Key.M)]
+[Command.Tool(Key = Key.V)]
 internal class SelectToolViewModel : ToolViewModel, ISelectToolHandler
 {
     private string defaultActionDisplay = "SELECT_TOOL_ACTION_DISPLAY_DEFAULT";
