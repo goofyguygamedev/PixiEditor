@@ -250,12 +250,20 @@ internal class WindowViewModel : SubViewModel<ViewModelMain>, IWindowHandler
         settings.Show();
     }
 
+    [Commands_Command.Basic("PixiEditor.Window.OpenHomeTab", "OPEN_HOME_TAB", "OPEN_HOME_TAB_DESCRIPTIVE",
+        Icon = PixiPerfectIcons.Home, MenuItemPath = "VIEW/OPEN_HOME_TAB", MenuItemOrder = 0,
+        AnalyticsTrack = true)]
+    public void OpenHomeTab()
+    {
+        Owner.LayoutSubViewModel.LayoutManager.ShowHomeTab();
+    }
+
     [Commands_Command.Basic("PixiEditor.Window.OpenStartupWindow", "OPEN_STARTUP_WINDOW", "OPEN_STARTUP_WINDOW",
         Icon = PixiPerfectIcons.Home, MenuItemPath = "VIEW/OPEN_STARTUP_WINDOW", MenuItemOrder = 1,
         AnalyticsTrack = true)]
     public void OpenHelloThereWindow()
     {
-        new HelloTherePopup(Owner.FileSubViewModel).Show(MainWindow.Current);
+        new HelloTherePopup().Show(MainWindow.Current);
     }
 
     [Command.Basic("PixiEditor.Window.OpenOnboardingWindow", "OPEN_ONBOARDING_WINDOW", "OPEN_ONBOARDING_WINDOW",

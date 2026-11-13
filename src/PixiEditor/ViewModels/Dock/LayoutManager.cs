@@ -32,6 +32,9 @@ internal class LayoutManager
 
     private List<HostWindow> floatedWindows = new();
 
+    /// <summary>Kept so the tab is the same one each time it is reopened.</summary>
+    private HomeDockViewModel? homeTab;
+
     public LayoutManager()
     {
         PixiEditorSettings.Accessibility.UiScaleFactor.ValueChanged += (setting, value) =>
@@ -230,6 +233,31 @@ internal class LayoutManager
         {
             DockContext.Float(dockable, 0, 0);
         }
+    }
+
+    /// <summary>
+    /// Opens the start screen as a tab beside the images, or brings it forward if it is already
+    /// open. One tab only: the + button is for getting back to the recent files, not for collecting
+    /// copies of the same screen.
+    /// </summary>
+    public void ShowHomeTab()
+    {
+        foreach (var element in ActiveLayout.Root)
+        {
+            if (element is IDockableHost dockableHost)
+            {
+                var existing = dockableHost.Dockables.FirstOrDefault(x => x.Id == HomeDockViewModel.TabId);
+                if (existing != null)
+                {
+                    dockableHost.ActiveDockable = existing;
+                    dockableHost.Context.FocusedTarget = dockableHost;
+                    return;
+                }
+            }
+        }
+
+        homeTab ??= new HomeDockViewModel();
+        AddViewport(homeTab);
     }
 
     public void ShowViewport(ViewportWindowViewModel viewport)

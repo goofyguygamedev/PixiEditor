@@ -1,4 +1,4 @@
-<Application xmlns="https://github.com/avaloniaui"
+﻿<Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:themes="clr-namespace:PixiEditor.UI.Common.Themes;assembly=PixiEditor.UI.Common"
              xmlns:avaloniaUi="clr-namespace:PixiEditor"
@@ -28,6 +28,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="/Styles/Templates/ListSwitchButton.axaml" />
+                <ResourceInclude Source="/Styles/Templates/DocumentTabStrip.axaml" />
                 <ResourceInclude Source="avares://LiveMarkdown.Avalonia/Defaults.axaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

@@ -1,0 +1,90 @@
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:controls="clr-namespace:PixiDocks.Avalonia.Controls;assembly=PixiDocks.Avalonia"
+                    xmlns:converters="clr-namespace:PixiEditor.Helpers.Converters"
+                    xmlns:ui="clr-namespace:PixiEditor.UI.Common.Localization;assembly=PixiEditor.UI.Common"
+                    xmlns:xaml="clr-namespace:PixiEditor.Models.Commands.XAML">
+    <!--
+      Overrides PixiDocks' PixiDockTabControlTheme so the document tab strip can carry a new-tab
+      button at the end of the tabs. PixiDocks is a submodule, so its own copy of this theme is left
+      alone; this one has to be merged into Application.Resources rather than into a style, because
+      resources beat styles in the lookup and that is what makes this the one that wins.
+
+      The template is the submodule's, with one change: the items presenter and the button share a
+      strip panel, so the Dock setters that used to move the presenter now move the strip instead.
+    -->
+    <ControlTheme x:Key="PixiDockTabControlTheme" TargetType="TabControl">
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ThemeDockBorderBrush}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource ThemeDockBorderThickness}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalAlignment}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}">
+                    <DockPanel>
+                        <DockPanel Name="PART_TabStrip" LastChildFill="False">
+                            <!-- The MaxWidth keeps room for the button: without it the tabs flex to
+                                 fill the whole strip once they overflow and the button is squeezed out. -->
+                            <ItemsPresenter Name="PART_ItemsPresenter"
+                                            ItemsPanel="{TemplateBinding ItemsPanel}"
+                                            MaxWidth="{Binding Bounds.Width, RelativeSource={RelativeSource AncestorType=DockPanel}, ConverterParameter=28, Converter={converters:SubtractDoubleConverter}}" />
+                            <Button Name="PART_NewTabButton"
+                                    Classes="pixi-icon"
+                                    Width="24" Height="24" Padding="0" Margin="2,2,0,0"
+                                    FontSize="16"
+                                    VerticalAlignment="Center"
+                                    Foreground="{DynamicResource ThemeForegroundBrush}"
+                                    Content="{DynamicResource icon-plus-square}"
+                                    ui:Translator.TooltipKey="OPEN_HOME_TAB"
+                                    Command="{xaml:Command Name=PixiEditor.Window.OpenHomeTab}"
+                                    IsVisible="{Binding $parent[controls:DockableArea].Id,
+                                                ConverterParameter=DocumentArea,
+                                                Converter={converters:EqualityBoolToIsVisibleConverter}}" />
+                        </DockPanel>
+                        <ContentPresenter Name="PART_SelectedContentHost"
+                                          Margin="0"
+                                          Background="{DynamicResource ThemeDockBackgroundBrush}"
+                                          CornerRadius="{DynamicResource ThemeDockAreaRadius}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Content="{TemplateBinding SelectedContent}"
+                                          ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
+                    </DockPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^[TabStripPlacement=Top]">
+            <Setter Property="Padding" Value="0 4 0 0" />
+        </Style>
+        <Style Selector="^[TabStripPlacement=Top] /template/ DockPanel#PART_TabStrip">
+            <Setter Property="DockPanel.Dock" Value="Top" />
+        </Style>
+        <Style Selector="^[TabStripPlacement=Bottom] /template/ DockPanel#PART_TabStrip">
+            <Setter Property="DockPanel.Dock" Value="Bottom" />
+        </Style>
+        <Style Selector="^[TabStripPlacement=Bottom]">
+            <Setter Property="Padding" Value="0 0 0 4" />
+        </Style>
+        <Style Selector="^[TabStripPlacement=Left] /template/ DockPanel#PART_TabStrip">
+            <Setter Property="DockPanel.Dock" Value="Left" />
+        </Style>
+        <Style Selector="^[TabStripPlacement=Left] /template/ ItemsPresenter#PART_ItemsPresenter > WrapPanel">
+            <Setter Property="Orientation" Value="Vertical" />
+        </Style>
+        <Style Selector="^[TabStripPlacement=Left]">
+            <Setter Property="Padding" Value="4 0 0 0" />
+        </Style>
+        <Style Selector="^[TabStripPlacement=Right] /template/ DockPanel#PART_TabStrip">
+            <Setter Property="DockPanel.Dock" Value="Right" />
+        </Style>
+        <Style Selector="^[TabStripPlacement=Right] /template/ ItemsPresenter#PART_ItemsPresenter > WrapPanel">
+            <Setter Property="Orientation" Value="Vertical" />
+        </Style>
+        <Style Selector="^[TabStripPlacement=Right]">
+            <Setter Property="Padding" Value="0 0 4 0" />
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>
