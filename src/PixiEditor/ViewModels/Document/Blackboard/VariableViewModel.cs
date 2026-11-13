@@ -191,7 +191,7 @@ internal class VariableViewModel : ViewModelBase, IVariableHandler
                 return new FloatSettingViewModel(name, 0, name) { Min = (float)min, Max = (float)max };
             }
 
-            return new SizeSettingViewModel(name, name) { Min = min, Max = max, Unit = unit };
+            return new SizeSettingViewModel(name, name) { DecimalPlaces = 2, Min = min, Max = max, Unit = unit };
         }
 
         if (type.IsAssignableTo(typeof(Brush)))

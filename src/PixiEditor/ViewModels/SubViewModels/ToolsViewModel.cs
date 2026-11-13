@@ -379,6 +379,14 @@ internal class ToolsViewModel : SubViewModel<ViewModelMain>, IToolsHandler
             return;
         }
 
+        // A live change that is still being tuned: a fill whose tolerance and colour can still be
+        // moved, a shade, an outline. Keeping it is what Enter does, so Escape does the same.
+        if (doc.IsChangeFeatureActive<IMidChangeUndoableExecutor>())
+        {
+            doc.Operations.TryStopToolLinkedExecutor();
+            return;
+        }
+
         // Nothing to finish, so fall back to the old meaning of the key.
         if (!doc.SelectionPathBindable.IsEmpty)
         {
@@ -724,11 +732,9 @@ internal class ToolsViewModel : SubViewModel<ViewModelMain>, IToolsHandler
 
     [Evaluator.CanExecute("PixiEditor.Tools.CanChangeToolSize",
         nameof(ActiveTool))]
-    public bool CanChangeToolSize() => Owner.ToolsSubViewModel.ActiveTool?.Toolbar is IToolSizeToolbar
-                                       && Owner.ToolsSubViewModel.ActiveTool is not PenToolViewModel
-                                       {
-                                           PixelPerfectEnabled: true
-                                       };
+    // Pixel perfect no longer blocks this: it takes the size to 1 rather than holding it there, and
+    // a bracket key asking for a bigger brush switches it off like any other size change would.
+    public bool CanChangeToolSize() => Owner.ToolsSubViewModel.ActiveTool?.Toolbar is IToolSizeToolbar;
 
     public void SetActiveTool(Type toolType, bool transient, ICommandExecutionSourceInfo sourceInfo, string? oldToolset = null)
     {

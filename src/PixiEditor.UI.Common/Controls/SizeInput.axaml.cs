@@ -67,7 +67,10 @@ public partial class SizeInput : UserControl
 
     public double MaxSize
     {
-        get => (int)GetValue(MaxSizeProperty);
+        // Not (int): the default max is double.MaxValue and a tool size's is often infinity, and
+        // casting either to int yields int.MinValue, which made the Math.Clamp below throw every
+        // time the wheel was turned over the field - the field simply stopped responding.
+        get => GetValue(MaxSizeProperty);
         set => SetValue(MaxSizeProperty, value);
     }
 
