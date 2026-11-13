@@ -45,6 +45,13 @@ internal abstract class DrawableShapeToolExecutor<T> : SimpleShapeToolExecutor w
 
     private bool preventSettingsChange = false;
 
+    /// <summary>
+    /// True when this session exists because an undo reopened the last shape, rather than because
+    /// the artist drew one. Such a session must not arm the memory again by itself, or the next
+    /// undo would hand the same shape back instead of carrying on back through history.
+    /// </summary>
+    private bool reopenedFromUndo;
+
     protected abstract bool UseGlobalUndo { get; }
     protected abstract bool ShowApplyButton { get; }
 
@@ -113,12 +120,48 @@ internal abstract class DrawableShapeToolExecutor<T> : SimpleShapeToolExecutor w
 
             ActiveMode = ShapeToolMode.Transform;
         }
-        else
+        else if (!TryReopenLastShape(member))
         {
             ActiveMode = ShapeToolMode.Preview;
         }
 
         return ExecutionState.Success;
+    }
+
+    /// <summary>
+    /// Puts the shape this tool last applied back under the transform handles. A raster shape is
+    /// pixels once it is applied, with nothing left to re-enter - so the corners are remembered on
+    /// the way out and the shape is drawn again here as a live change, which is what makes undo
+    /// land back in the adjustment rather than on an empty canvas.
+    /// </summary>
+    private bool TryReopenLastShape(IStructureMemberHandler member)
+    {
+        if (toolViewModel?.ReopenableShape is not { } reopen)
+            return false;
+
+        // Only where it was drawn. Anywhere else and this would resurrect a shape onto a layer it
+        // never belonged to.
+        if (reopen.LayerId != member.Id || reopen.Frame != document!.AnimationHandler.ActiveFrameBindable)
+            return false;
+
+        // One reopen per apply, or a second undo would keep handing the same shape back.
+        toolViewModel.ReopenableShape = null;
+        reopenedFromUndo = true;
+
+        lastRect = RectD.FromCenterAndSize(reopen.Corners.RectCenter, reopen.Corners.RectSize);
+        lastRadians = reopen.Corners.RectRotation;
+        initialCorners = reopen.Corners;
+
+        document.TransformHandler.ShowTransform(
+            TransformMode, false, reopen.Corners, false, UseGlobalUndo ? AddToUndo : null);
+        document.TransformHandler.CanAlignToPixels = AlignToPixels;
+
+        ActiveMode = ShapeToolMode.Transform;
+
+        internals!.ActionAccumulator.AddActions(
+            TransformMovedAction(ShapeDataFromCorners(reopen.Corners), reopen.Corners));
+
+        return true;
     }
 
     protected abstract void DrawShape(VecD currentPos, double rotationRad, bool firstDraw);
@@ -158,6 +201,8 @@ internal abstract class DrawableShapeToolExecutor<T> : SimpleShapeToolExecutor w
             return;
 
         base.OnTransformChanged(corners);
+        RememberShapeForReopening(corners);
+
         var shapeData = ShapeDataFromCorners(corners);
         IAction drawAction = TransformMovedAction(shapeData, corners);
 
@@ -185,6 +230,10 @@ internal abstract class DrawableShapeToolExecutor<T> : SimpleShapeToolExecutor w
         if (ActiveMode != ShapeToolMode.Transform)
             return;
 
+        // Applying it makes it a new shape again, worth remembering in its own right.
+        reopenedFromUndo = false;
+        RememberShapeForReopening();
+
         internals!.ActionAccumulator.AddFinishedActions(EndDrawAction());
         document!.TransformHandler.HideTransform();
 
@@ -200,6 +249,31 @@ internal abstract class DrawableShapeToolExecutor<T> : SimpleShapeToolExecutor w
         }
 
         base.OnTransformApplied();
+    }
+
+    /// <summary>
+    /// Keeps the applied shape's corners on the tool, where they outlive this executor. Not for a
+    /// vector layer: the shape is still there as data afterwards, and the tool re-enters it by
+    /// reading the layer, which also survives being closed and reopened.
+    /// </summary>
+    private void RememberShapeForReopening() =>
+        RememberShapeForReopening(document?.TransformHandler.Corners ?? default);
+
+    private void RememberShapeForReopening(ShapeCorners corners)
+    {
+        if (reopenedFromUndo)
+            return;
+
+        if (toolViewModel is null || document?.SelectedStructureMember is null or IVectorLayerHandler)
+            return;
+
+        if (corners.RectSize.X <= 0 || corners.RectSize.Y <= 0)
+            return;
+
+        toolViewModel.ReopenableShape = new ShapeReopenData(
+            document.SelectedStructureMember.Id,
+            corners,
+            document.AnimationHandler.ActiveFrameBindable);
     }
 
     public override void OnColorChanged(Color color, bool primary)
@@ -401,6 +475,16 @@ internal abstract class DrawableShapeToolExecutor<T> : SimpleShapeToolExecutor w
 
     public override void OnLeftMouseButtonUp(VecD argsPositionOnCanvas)
     {
+        OnLeftMouseButtonUpCore(argsPositionOnCanvas);
+
+        if (ActiveMode == ShapeToolMode.Transform)
+        {
+            RememberShapeForReopening();
+        }
+    }
+
+    private void OnLeftMouseButtonUpCore(VecD argsPositionOnCanvas)
+    {
         if (ActiveMode != ShapeToolMode.Transform)
         {
             if (noMovement)
@@ -467,6 +551,11 @@ internal abstract class DrawableShapeToolExecutor<T> : SimpleShapeToolExecutor w
 
     public override void ForceStop()
     {
+        if (ActiveMode == ShapeToolMode.Transform)
+        {
+            RememberShapeForReopening();
+        }
+
         base.ForceStop();
         internals!.ActionAccumulator.AddFinishedActions(EndDrawAction());
     }
